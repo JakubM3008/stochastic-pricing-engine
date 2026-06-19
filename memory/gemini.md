@@ -40,15 +40,23 @@
 * **Environment Configuration:** Configured [.github/workflows/gradle.yml](file:///Users/jakubm/stochastic-pricing-engine/.github/workflows/gradle.yml) to checkout the repository, spin up **JDK 23 (Eclipse Temurin)**, cache Gradle, compile files, and execute the test suites on every push or pull request to the `main` branch.
 * **Incubator support:** Passes vector module compiler and JVM runtime flags securely during compilation and test phases inside the CI environment.
 
+### 7. Interactive Frontend Dashboard
+* **Web Endpoint:** Implemented [SimulationController.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/controller/SimulationController.java) exposing `/api/simulate` endpoint for parsing parameter JSON requests, launching Monte Carlo runs, and returning trajectory data.
+* **Responsive Visuals:** Created [index.html](file:///Users/jakubm/stochastic-pricing-engine/src/main/resources/static/index.html) served from resources static folder. Plots dynamic decay paths and bar distributions using Chart.js with dark-mode card glassmorphism stylings.
+
 ### Current Code Structure
 * [PricingEngineApplication.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/PricingEngineApplication.java) - Application bootstrapper.
 * [AlmgrenChrissOptimizer.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/domain/AlmgrenChrissOptimizer.java) - Optimizes liquidation schedules.
 * [VwapTrajectoryGenerator.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/domain/VwapTrajectoryGenerator.java) - Generates historical volume profile schedules.
 * [ExecutionResult.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/domain/ExecutionResult.java) - Holder for simulated shortfall mean and variance.
-* [ExecutionSimulator.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/domain/ExecutionSimulator.java) - Performs SIMD-vectorized Monte Carlo shortfall path simulation.
+* [ExecutionSimulator.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/domain/ExecutionSimulator.java) - Performs SIMD-vectorized Monte Carlo shortfall price simulations.
 * [PortfolioExecutionSimulator.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/domain/PortfolioExecutionSimulator.java) - Multi-asset portfolio execution simulator with Cholesky mapping.
+* [SimulationController.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/controller/SimulationController.java) - Handles POST request routes for execution benchmarks.
+* [SimulationRequest.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/controller/SimulationRequest.java) - JSON parameter container.
+* [SimulationResponse.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/controller/SimulationResponse.java) - Result container.
 * [ExecutionTools.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/agent/ExecutionTools.java) - Exposed LLM execution tools.
 * [ExecutionAgent.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/agent/ExecutionAgent.java) - Defines LLM analyst system instructions.
 * [AgentConfiguration.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/agent/AgentConfiguration.java) - Wire framework configurations and fallback mock models.
 * [PricingEngineRunner.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/PricingEngineRunner.java) - CommandLineRunner that prints simulation benchmarks.
+* [index.html](file:///Users/jakubm/stochastic-pricing-engine/src/main/resources/static/index.html) - Visual Chart.js frontend dashboard.
 * [gradle.yml](file:///Users/jakubm/stochastic-pricing-engine/.github/workflows/gradle.yml) - GitHub Actions CI compiler pipeline configuration.
