@@ -2,6 +2,7 @@ package com.quant.pricing.agent;
 
 import com.quant.pricing.domain.AlmgrenChrissOptimizer;
 import com.quant.pricing.domain.ExecutionSimulator;
+import com.quant.pricing.domain.VwapTrajectoryGenerator;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -28,8 +29,13 @@ public class AgentConfiguration {
     }
 
     @Bean
-    public ExecutionTools executionTools(AlmgrenChrissOptimizer optimizer, ExecutionSimulator simulator) {
-        return new ExecutionTools(optimizer, simulator);
+    public VwapTrajectoryGenerator vwapGenerator() {
+        return new VwapTrajectoryGenerator();
+    }
+
+    @Bean
+    public ExecutionTools executionTools(AlmgrenChrissOptimizer optimizer, ExecutionSimulator simulator, VwapTrajectoryGenerator vwapGenerator) {
+        return new ExecutionTools(optimizer, simulator, vwapGenerator);
     }
 
     @Bean

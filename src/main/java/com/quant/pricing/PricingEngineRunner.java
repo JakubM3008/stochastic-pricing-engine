@@ -4,6 +4,7 @@ import com.quant.pricing.agent.ExecutionAgent;
 import com.quant.pricing.domain.AlmgrenChrissOptimizer;
 import com.quant.pricing.domain.ExecutionResult;
 import com.quant.pricing.domain.ExecutionSimulator;
+import com.quant.pricing.domain.VwapTrajectoryGenerator;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -15,11 +16,13 @@ public class PricingEngineRunner implements CommandLineRunner {
     private final ExecutionAgent agent;
     private final AlmgrenChrissOptimizer optimizer;
     private final ExecutionSimulator simulator;
+    private final VwapTrajectoryGenerator vwapGenerator;
 
-    public PricingEngineRunner(ExecutionAgent agent, AlmgrenChrissOptimizer optimizer, ExecutionSimulator simulator) {
+    public PricingEngineRunner(ExecutionAgent agent, AlmgrenChrissOptimizer optimizer, ExecutionSimulator simulator, VwapTrajectoryGenerator vwapGenerator) {
         this.agent = agent;
         this.optimizer = optimizer;
         this.simulator = simulator;
+        this.vwapGenerator = vwapGenerator;
     }
 
     @Override
@@ -41,18 +44,26 @@ public class PricingEngineRunner implements CommandLineRunner {
         System.out.println("Calculating schedules...");
         double[] optimal = optimizer.optimize(totalShares, numSteps, stepVolatility, lambda, eta, gamma, tau);
         double[] twap = optimizer.optimize(totalShares, numSteps, stepVolatility, 0.0, eta, gamma, tau);
+        
+        // Standard U-shaped volume profile curve (sums to 1.0)
+        double[] volumeProfile = {0.35, 0.15, 0.10, 0.15, 0.25};
+        double[] vwap = vwapGenerator.generate(totalShares, volumeProfile);
 
         System.out.println("Optimal Trajectory (Holdings remaining): " + Arrays.toString(optimal));
         System.out.println("TWAP Trajectory (Holdings remaining):    " + Arrays.toString(twap));
+        System.out.println("VWAP Trajectory (Holdings remaining):    " + Arrays.toString(vwap));
 
         System.out.println("\nRunning Monte Carlo simulations (10,000 paths) on Virtual Threads...");
         ExecutionResult optimalRes = simulator.simulate(initialPrice, optimal, numSteps, stepVolatility, eta, gamma, tau, 10000);
         ExecutionResult twapRes = simulator.simulate(initialPrice, twap, numSteps, stepVolatility, eta, gamma, tau, 10000);
+        ExecutionResult vwapRes = simulator.simulate(initialPrice, vwap, numSteps, stepVolatility, eta, gamma, tau, 10000);
 
         System.out.printf("Optimal Execution - Expected Shortfall: %.2f USD | Std Dev: %.2f USD%n", 
                 optimalRes.expectedShortfall(), optimalRes.shortfallStandardDeviation());
         System.out.printf("TWAP Execution    - Expected Shortfall: %.2f USD | Std Dev: %.2f USD%n", 
                 twapRes.expectedShortfall(), twapRes.shortfallStandardDeviation());
+        System.out.printf("VWAP Execution    - Expected Shortfall: %.2f USD | Std Dev: %.2f USD%n", 
+                vwapRes.expectedShortfall(), vwapRes.shortfallStandardDeviation());
 
         String apiKey = System.getenv("GEMINI_API_KEY");
         if (apiKey == null || apiKey.isBlank()) {

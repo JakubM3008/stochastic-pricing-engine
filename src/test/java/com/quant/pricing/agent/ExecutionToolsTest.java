@@ -2,6 +2,7 @@ package com.quant.pricing.agent;
 
 import com.quant.pricing.domain.AlmgrenChrissOptimizer;
 import com.quant.pricing.domain.ExecutionSimulator;
+import com.quant.pricing.domain.VwapTrajectoryGenerator;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -15,7 +16,8 @@ class ExecutionToolsTest {
         // Arrange
         AlmgrenChrissOptimizer optimizer = new AlmgrenChrissOptimizer();
         ExecutionSimulator simulator = new ExecutionSimulator();
-        ExecutionTools tools = new ExecutionTools(optimizer, simulator);
+        VwapTrajectoryGenerator vwapGenerator = new VwapTrajectoryGenerator();
+        ExecutionTools tools = new ExecutionTools(optimizer, simulator, vwapGenerator);
 
         // When
         double[] trajectory = tools.calculateOptimalTrajectory(10000.0, 5, 0.30, 0.0, 1e-5, 1e-6, 1.0);
@@ -31,7 +33,8 @@ class ExecutionToolsTest {
         // Arrange
         AlmgrenChrissOptimizer optimizer = new AlmgrenChrissOptimizer();
         ExecutionSimulator simulator = new ExecutionSimulator();
-        ExecutionTools tools = new ExecutionTools(optimizer, simulator);
+        VwapTrajectoryGenerator vwapGenerator = new VwapTrajectoryGenerator();
+        ExecutionTools tools = new ExecutionTools(optimizer, simulator, vwapGenerator);
         double[] trajectory = {10000.0, 8000.0, 6000.0, 4000.0, 2000.0, 0.0};
 
         // When
@@ -44,13 +47,35 @@ class ExecutionToolsTest {
     }
 
     @Test
+    void shouldExecuteVwapTrajectoryTool() {
+        // Arrange
+        AlmgrenChrissOptimizer optimizer = new AlmgrenChrissOptimizer();
+        ExecutionSimulator simulator = new ExecutionSimulator();
+        VwapTrajectoryGenerator vwapGenerator = new VwapTrajectoryGenerator();
+        ExecutionTools tools = new ExecutionTools(optimizer, simulator, vwapGenerator);
+        double[] profile = {0.40, 0.60};
+
+        // When
+        double[] trajectory = tools.generateVwapTrajectory(10000.0, profile);
+
+        // Then
+        assertEquals(3, trajectory.length);
+        assertEquals(10000.0, trajectory[0], 1e-9);
+        assertEquals(6000.0, trajectory[1], 1e-9);
+        assertEquals(0.0, trajectory[2], 1e-9);
+    }
+
+    @Test
     void shouldHaveToolAnnotations() throws NoSuchMethodException {
         Method optimalMethod = ExecutionTools.class.getMethod("calculateOptimalTrajectory", 
                 double.class, int.class, double.class, double.class, double.class, double.class, double.class);
+        Method vwapMethod = ExecutionTools.class.getMethod("generateVwapTrajectory", 
+                double.class, double[].class);
         Method simulationMethod = ExecutionTools.class.getMethod("simulateExecution", 
                 double.class, double[].class, int.class, double.class, double.class, double.class, double.class, int.class);
 
         assertTrue(optimalMethod.isAnnotationPresent(dev.langchain4j.agent.tool.Tool.class));
+        assertTrue(vwapMethod.isAnnotationPresent(dev.langchain4j.agent.tool.Tool.class));
         assertTrue(simulationMethod.isAnnotationPresent(dev.langchain4j.agent.tool.Tool.class));
     }
 }
