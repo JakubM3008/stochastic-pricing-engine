@@ -239,6 +239,19 @@
             box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.15);
         }
 
+        .suggested-range {
+            font-size: 0.65rem;
+            color: var(--accent-primary);
+            opacity: 0.85;
+            margin-top: 0.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            display: none;
+        }
+
+        body.demo-active .suggested-range {
+            display: block;
+        }
+
         /* Custom inputs for Volume profile segments */
         .profile-segments {
             display: flex;
@@ -496,11 +509,13 @@
                 <div class="form-group">
                     <label for="totalShares">Total Shares to Liquidate</label>
                     <input type="number" id="totalShares" value="1000000" min="1000" step="1000">
+                    <div class="suggested-range" id="range-totalShares"></div>
                 </div>
 
                 <div class="form-group">
                     <label for="initialPrice">Initial Price (USD)</label>
                     <input type="number" id="initialPrice" value="100.00" min="0.01" step="0.01">
+                    <div class="suggested-range" id="range-initialPrice"></div>
                 </div>
 
                 <div class="form-group">
@@ -509,6 +524,7 @@
                         <input type="range" id="stepVolatility" min="0.01" max="0.50" step="0.01" value="0.30">
                         <input type="number" id="volInput" min="0.001" max="10.0" step="0.001" value="0.30" class="inline-num-input">
                     </div>
+                    <div class="suggested-range" id="range-volatility"></div>
                 </div>
 
                 <div class="form-group">
@@ -517,16 +533,19 @@
                         <input type="range" id="lambda" min="-6" max="-1" step="0.1" value="-4">
                         <input type="text" id="lambdaInputText" value="1.00e-4" class="inline-num-input">
                     </div>
+                    <div class="suggested-range" id="range-lambda"></div>
                 </div>
 
                 <div class="form-group">
                     <label for="eta">Temporary Impact (&eta;)</label>
                     <input type="number" id="eta" value="0.00001" step="0.000001">
+                    <div class="suggested-range" id="range-eta"></div>
                 </div>
 
                 <div class="form-group">
                     <label for="gamma">Permanent Impact (&gamma;)</label>
                     <input type="number" id="gamma" value="0.000001" step="0.0000001">
+                    <div class="suggested-range" id="range-gamma"></div>
                 </div>
 
                 <div class="form-group">
@@ -635,6 +654,11 @@
     </div>
 
     <script>
+        const isDemo = new URLSearchParams(window.location.search).has('demo');
+        if (isDemo) {
+            document.body.classList.add('demo-active');
+        }
+
         // Setup state values & sliders mapping
         const stepVolSlider = document.getElementById('stepVolatility');
         const stepVolInput = document.getElementById('volInput');
@@ -642,12 +666,14 @@
         // Bidirectional syncing for Volatility
         stepVolSlider.addEventListener('input', (e) => {
             stepVolInput.value = parseFloat(e.target.value).toFixed(2);
+            updateSuggestedRanges();
         });
         stepVolInput.addEventListener('change', (e) => {
             let val = parseFloat(e.target.value);
             if (isNaN(val) || val < 0) val = 0.01;
             stepVolInput.value = val.toFixed(4);
             stepVolSlider.value = val;
+            updateSuggestedRanges();
         });
 
         const lambdaSlider = document.getElementById('lambda');
@@ -658,6 +684,7 @@
             const exp = parseFloat(e.target.value);
             const absoluteVal = Math.pow(10, exp);
             lambdaInputText.value = absoluteVal.toExponential(2);
+            updateSuggestedRanges();
         });
         lambdaInputText.addEventListener('change', (e) => {
             let val = parseFloat(e.target.value);
@@ -665,6 +692,7 @@
             lambdaInputText.value = val.toExponential(4);
             const logVal = Math.log10(val);
             lambdaSlider.value = logVal;
+            updateSuggestedRanges();
         });
 
         // Initialize Chart.js Chart instances
@@ -955,6 +983,58 @@
 
         // On window load
         initializeCharts();
+        
+        // Listeners for remaining inputs to trigger suggestions recalculation
+        const otherInputs = ['totalShares', 'initialPrice', 'eta', 'gamma'];
+        otherInputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', updateSuggestedRanges);
+            document.getElementById(id).addEventListener('change', updateSuggestedRanges);
+        });
+
+        function updateSuggestedRanges() {
+            if (!isDemo) return;
+
+            const shares = parseFloat(document.getElementById('totalShares').value) || 1000000;
+            const price = parseFloat(document.getElementById('initialPrice').value) || 100;
+            const vol = parseFloat(stepVolInput.value) || 0.3;
+            const lambda = parseFloat(lambdaInputText.value) || 1e-4;
+            const eta = parseFloat(document.getElementById('eta').value) || 1e-5;
+
+            // 1. Total Shares
+            const sharesMin = Math.round(500000 / price);
+            const sharesMax = Math.round(50000000 / price);
+            document.getElementById('range-totalShares').textContent = 
+                `Suggested: ${sharesMin.toLocaleString()} – ${sharesMax.toLocaleString()} shares`;
+
+            // 2. Initial Price
+            const priceMin = Math.max(0.01, 100000 / shares);
+            const priceMax = 100000000 / shares;
+            document.getElementById('range-initialPrice').textContent = 
+                `Suggested: $${priceMin.toFixed(2)} – $${priceMax.toFixed(2)}`;
+
+            // 3. Volatility
+            document.getElementById('range-volatility').textContent = "Suggested: 0.05 – 0.60";
+
+            // 4. Lambda (Risk Aversion)
+            const lamMin = (0.01 * eta) / (vol * vol);
+            const lamMax = (4.0 * eta) / (vol * vol);
+            document.getElementById('range-lambda').textContent = 
+                `Suggested: ${lamMin.toExponential(2)} – ${lamMax.toExponential(2)}`;
+
+            // 5. Temporary Impact (eta)
+            const etaMin = (vol * vol * lambda) / 4.0;
+            const etaMax = (vol * vol * lambda) / 0.01;
+            document.getElementById('range-eta').textContent = 
+                `Suggested: ${etaMin.toExponential(2)} – ${etaMax.toExponential(2)}`;
+
+            // 6. Permanent Impact (gamma)
+            const gamMin = 0.01 * eta;
+            const gamMax = 0.5 * eta;
+            document.getElementById('range-gamma').textContent = 
+                `Suggested: ${gamMin.toExponential(2)} – ${gamMax.toExponential(2)}`;
+        }
+
+        updateSuggestedRanges();
     </script>
 </body>
 </html>
