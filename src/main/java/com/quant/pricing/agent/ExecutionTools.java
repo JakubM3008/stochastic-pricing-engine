@@ -1,0 +1,32 @@
+package com.quant.pricing.agent;
+
+import com.quant.pricing.domain.*;
+import dev.langchain4j.agent.tool.Tool;
+import tools.jackson.databind.json.JsonMapper;
+
+public class ExecutionTools {
+    private final AlmgrenChrissOptimizer optimizer;
+    private final ExecutionSimulator simulator;
+    private final JsonMapper jsonMapper;
+
+    public ExecutionTools(AlmgrenChrissOptimizer optimizer, ExecutionSimulator simulator) {
+        this.optimizer = optimizer;
+        this.simulator = simulator;
+        this.jsonMapper = JsonMapper.builder().build();
+    }
+
+    @Tool("Calculate the Almgren-Chriss optimal trading trajectory (shares remaining at each step). Returns an array of target holdings.")
+    public double[] calculateOptimalTrajectory(double totalShares, int numSteps, double volatility, double lambda, double eta, double gamma, double tau) {
+        return optimizer.optimize(totalShares, numSteps, volatility, lambda, eta, gamma, tau);
+    }
+
+    @Tool("Simulate the execution of a trading trajectory across Monte Carlo paths under Almgren-Chriss impact conditions. Returns expected shortfall, variance, and standard deviation.")
+    public String simulateExecution(double initialPrice, double[] trajectory, int numSteps, double stepVolatility, double eta, double gamma, double tau, int numPaths) {
+        try {
+            ExecutionResult result = simulator.simulate(initialPrice, trajectory, numSteps, stepVolatility, eta, gamma, tau, numPaths);
+            return jsonMapper.writeValueAsString(result);
+        } catch (Exception e) {
+            return "Simulation failed: " + e.getMessage();
+        }
+    }
+}
