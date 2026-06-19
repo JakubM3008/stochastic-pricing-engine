@@ -38,3 +38,8 @@ out/
 
 # Local Developer Preferences (Do not commit)
 developer-preferences.md
+
+# Custom Agent Skills (Do not commit)
+.agents/
+trading_ui_design_subagent_skill.md
+
