@@ -1,16 +1,4 @@
-# Antigravity Project Journal & Memory
-
-## Communication Preferences
-* **Tone/Style:** Concise, structured, concept-first.
-* **Format:** Bullet points, clear diagrams, direct explanations of JVM internals and financial concepts.
-* **Rules:** Avoid walls of text. Provide short checklists and code snippets with clear checkpoints.
-
-## Learning Constraints & Goals (CRITICAL)
-* **Profile:** Junior Java Developer with BSc CS + MSc Fin Math.
-* **Core Concern:** Relentless delivery pressure and spamming AI leads to copying code without understanding. 
-* **Core Goal:** Deeply master code patterns, JVM mechanics, and design tradeoffs to speak authoritatively in interviews.
-* **Compliance Constraint:** NEVER mention specific employer names (e.g., "Goldman Sachs", "GS") in the repository code, documentation, commits, or comments. Keep all domain models and descriptions strictly generic (e.g., "Generic Corporate Treasury").
-* **Agent Rule:** Proactively explain **why** decisions are made. Break down complex pieces, link to official specs/JVM behaviors, and use interactive checkpoints instead of bulk-dumping code.
+# Project Journal & Memory
 
 ## Project Profile: Almgren-Chriss Optimal Execution Simulator
 * **Goal:** A high-performance quantitative simulation and optimization engine implementing the Almgren-Chriss (2000) optimal liquidation framework.
@@ -43,11 +31,16 @@
 * **Dynamic Proxies:** `AiServices.builder` generates runtime implementations of `ExecutionAgent` using Java dynamic proxies.
 * **Reflection-Based Tool Routing:** Mapped `ExecutionTools` methods dynamically using `@Tool` annotations to calculate trajectories and simulate shortfalls.
 
+### 5. Java Vector API (SIMD Mathematics)
+* **Hardware registers:** Compiles to AVX-256, AVX-512, or NEON instructions.
+* **Vector Loop implementation:** Uses `DoubleVector` to perform arithmetic updates on multiple price paths in a single instruction cycle, preserving individual path variances by tracking cash realizations in independent array elements.
+
 ### Current Code Structure
-* [PricingEngineApplication.java](file:///Users/jakubm/treasury-risk-engine/src/main/java/com/quant/pricing/PricingEngineApplication.java) - Application bootstrapper.
-* [AlmgrenChrissOptimizer.java](file:///Users/jakubm/treasury-risk-engine/src/main/java/com/quant/pricing/domain/AlmgrenChrissOptimizer.java) - Optimizes liquidation schedules.
-* [ExecutionResult.java](file:///Users/jakubm/treasury-risk-engine/src/main/java/com/quant/pricing/domain/ExecutionResult.java) - Holder for simulated shortfall mean and variance.
-* [ExecutionSimulator.java](file:///Users/jakubm/treasury-risk-engine/src/main/java/com/quant/pricing/domain/ExecutionSimulator.java) - Performs virtual-threaded Monte Carlo shortfall path simulation.
-* [ExecutionTools.java](file:///Users/jakubm/treasury-risk-engine/src/main/java/com/quant/pricing/agent/ExecutionTools.java) - Exposed LLM execution tools.
-* [ExecutionAgent.java](file:///Users/jakubm/treasury-risk-engine/src/main/java/com/quant/pricing/agent/ExecutionAgent.java) - Defines LLM analyst system instructions.
-* [AgentConfiguration.java](file:///Users/jakubm/treasury-risk-engine/src/main/java/com/quant/pricing/agent/AgentConfiguration.java) - Wire framework configurations and fallback mock models.
+* [PricingEngineApplication.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/PricingEngineApplication.java) - Application bootstrapper.
+* [AlmgrenChrissOptimizer.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/domain/AlmgrenChrissOptimizer.java) - Optimizes liquidation schedules.
+* [ExecutionResult.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/domain/ExecutionResult.java) - Holder for simulated shortfall mean and variance.
+* [ExecutionSimulator.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/domain/ExecutionSimulator.java) - Performs SIMD-vectorized Monte Carlo shortfall path simulation.
+* [ExecutionTools.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/agent/ExecutionTools.java) - Exposed LLM execution tools.
+* [ExecutionAgent.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/agent/ExecutionAgent.java) - Defines LLM analyst system instructions.
+* [AgentConfiguration.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/agent/AgentConfiguration.java) - Wire framework configurations and fallback mock models.
+* [PricingEngineRunner.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/PricingEngineRunner.java) - CommandLineRunner that prints simulation benchmarks.

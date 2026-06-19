@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# Local Developer Preferences (Do not commit)
+developer-preferences.md
