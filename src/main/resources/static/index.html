@@ -252,6 +252,11 @@
             display: block;
         }
 
+        .profile-segments.profile-error {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+        }
+
         /* Custom inputs for Volume profile segments */
         .profile-segments {
             display: flex;
@@ -329,6 +334,12 @@
         .btn:active {
             background: #e4e4e7;
             transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
         }
 
         /* Main Content Layout */
@@ -589,6 +600,7 @@
                             <input type="number" id="p5" value="25" min="0" max="100">
                         </div>
                     </div>
+                    <div id="profileWarning" style="color: #ef4444; font-size: 0.65rem; margin-top: 0.35rem; font-family: 'JetBrains Mono', monospace; display: none;"></div>
                 </div>
 
                 <button type="submit" class="btn">Execute Benchmark</button>
@@ -1132,6 +1144,55 @@
                 trajectoryChart.data.datasets[1].data = [];
                 trajectoryChart.data.datasets[2].data = [];
                 trajectoryChart.update();
+            }
+
+            // Bind listeners for dynamic validation
+            const volumeInputs = document.querySelectorAll('.profile-segments input');
+            volumeInputs.forEach(input => {
+                input.addEventListener('input', validateVolumeProfile);
+                input.addEventListener('change', validateVolumeProfile);
+            });
+
+            validateVolumeProfile();
+        }
+
+        function validateVolumeProfile() {
+            const inputs = document.querySelectorAll('.profile-segments input');
+            const btn = document.querySelector('.btn');
+            const warning = document.getElementById('profileWarning');
+            const container = document.querySelector('.profile-segments');
+
+            let allPopulated = true;
+            let sum = 0;
+
+            inputs.forEach(input => {
+                const valStr = input.value.trim();
+                if (valStr === '') {
+                    allPopulated = false;
+                }
+                const val = parseFloat(valStr);
+                if (isNaN(val)) {
+                    allPopulated = false;
+                } else {
+                    sum += val;
+                }
+            });
+
+            if (allPopulated) {
+                if (Math.round(sum) !== 100) {
+                    container.classList.add('profile-error');
+                    warning.textContent = `Total profile must sum to exactly 100%. Current: ${Math.round(sum)}%`;
+                    warning.style.display = 'block';
+                    btn.disabled = true;
+                } else {
+                    container.classList.remove('profile-error');
+                    warning.style.display = 'none';
+                    btn.disabled = false;
+                }
+            } else {
+                container.classList.remove('profile-error');
+                warning.style.display = 'none';
+                btn.disabled = false;
             }
         }
 
