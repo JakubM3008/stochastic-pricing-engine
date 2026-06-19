@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stochastic execution simulator</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0b10;
+            --panel-bg: rgba(20, 20, 30, 0.6);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-purple: #8b5cf6;
+            --accent-purple-glow: rgba(139, 92, 246, 0.35);
+            --accent-blue: #38bdf8;
+            --accent-amber: #f59e0b;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(56, 189, 248, 0.05) 0%, transparent 40%);
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 30%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+        }
+
+        .badge {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid var(--accent-purple);
+            padding: 0.4rem 0.8rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #c084fc;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        /* Glassmorphism Panels */
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .panel-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            border-left: 3px solid var(--accent-purple);
+            padding-left: 0.75rem;
+            letter-spacing: -0.2px;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        input[type="number"], input[type="range"] {
+            width: 100%;
+            background: rgba(10, 10, 15, 0.8);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.7rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 0 3px var(--accent-purple-glow);
+        }
+
+        /* Range sliders */
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .range-container span {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        /* Custom inputs for Volume profile */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .profile-step {
+            text-align: center;
+        }
+        .profile-step input {
+            width: 100%;
+            text-align: center;
+            padding: 0.5rem 0.2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, #6366f1 100%);
+            color: white;
+            border: none;
+            padding: 0.9rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.25);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Main Content Panel layout */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .chart-box {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+
+        /* AI Analyst Report container */
+        .report-box {
+            background: rgba(15, 15, 25, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            font-family: 'Outfit', sans-serif;
+            line-height: 1.6;
+        }
+
+        .report-box h3 {
+            font-size: 1.15rem;
+            margin-bottom: 0.75rem;
+            color: var(--accent-purple);
+        }
+
+        .report-box ul {
+            list-style-type: none;
+        }
+
+        .report-box li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .report-box li::before {
+            content: "•";
+            color: var(--accent-purple);
+            font-weight: bold;
+            font-size: 1.2rem;
+            position: absolute;
+            left: 0;
+            top: -2px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        td {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .optimal-cell { color: var(--accent-purple); font-weight: bold;}
+        .twap-cell { color: var(--accent-blue); font-weight: bold;}
+        .vwap-cell { color: var(--accent-amber); font-weight: bold;}
+
+        /* Spinners */
+        .loading {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(11, 11, 16, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 16px;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .loading.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid var(--accent-purple);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div>
+                <h1>Stochastic execution simulator</h1>
+                <div class="subtitle">Almgren-Chriss Optimal Liquidation Strategy Benchmark</div>
+            </div>
+            <div class="badge">Hardware Vector (SIMD) Enabled</div>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- Left panel: Control parameters -->
+            <form id="simForm" class="panel">
+                <div class="panel-title">Trading parameters</div>
+
+                <div class="form-group">
+                    <label for="totalShares">Total Shares to Liquidate</label>
+                    <input type="number" id="totalShares" value="1000000" min="1000" step="1000">
+                </div>
+
+                <div class="form-group">
+                    <label for="initialPrice">Initial Asset Price (USD)</label>
+                    <input type="number" id="initialPrice" value="100.00" min="0.01" step="0.01">
+                </div>
+
+                <div class="form-group">
+                    <label for="stepVolatility">Volatility per Step</label>
+                    <div class="range-container">
+                        <input type="range" id="stepVolatility" min="0.01" max="0.50" step="0.01" value="0.30">
+                        <span id="volVal">0.30</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="lambda">Risk Aversion (&lambda;)</label>
+                    <div class="range-container">
+                        <input type="range" id="lambda" min="-6" max="-1" step="0.5" value="-4">
+                        <span id="lambdaVal">1e-4</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="eta">Temporary Impact (&eta;)</label>
+                    <input type="number" id="eta" value="0.00001" step="0.000001">
+                </div>
+
+                <div class="form-group">
+                    <label for="gamma">Permanent Impact (&gamma;)</label>
+                    <input type="number" id="gamma" value="0.000001" step="0.0000001">
+                </div>
+
+                <div class="form-group">
+                    <label>Historical Intraday Volume Profile (%)</label>
+                    <div class="profile-grid">
+                        <div class="profile-step">
+                            <label>S1</label>
+                            <input type="number" id="p1" value="35" min="0" max="100">
+                        </div>
+                        <div class="profile-step">
+                            <label>S2</label>
+                            <input type="number" id="p2" value="15" min="0" max="100">
+                        </div>
+                        <div class="profile-step">
+                            <label>S3</label>
+                            <input type="number" id="p3" value="10" min="0" max="100">
+                        </div>
+                        <div class="profile-step">
+                            <label>S4</label>
+                            <input type="number" id="p4" value="15" min="0" max="100">
+                        </div>
+                        <div class="profile-step">
+                            <label>S5</label>
+                            <input type="number" id="p5" value="25" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn">Execute Benchmark</button>
+            </form>
+
+            <!-- Right side content -->
+            <div class="main-content">
+                <div class="panel" style="position: relative;">
+                    <div class="loading" id="loader">
+                        <div class="spinner"></div>
+                    </div>
+
+                    <div class="charts-container">
+                        <!-- Chart 1: Holding Trajectories -->
+                        <div>
+                            <div class="panel-title">Holding Schedules (Decay Curves)</div>
+                            <div class="chart-box">
+                                <canvas id="trajectoryChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 2: Cost-Risk comparison -->
+                        <div>
+                            <div class="panel-title">Execution cost (ES) vs Volatility risk (SD)</div>
+                            <div class="chart-box">
+                                <canvas id="varianceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics breakdown table -->
+                <div class="panel">
+                    <div class="panel-title">Backtesting Performance Metrics (10,000 paths)</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Strategy</th>
+                                <th>Expected Shortfall (Cost)</th>
+                                <th>Risk Standard Deviation</th>
+                                <th>Liquidation Volatility Variance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="optimal-cell">Almgren-Chriss Optimal</td>
+                                <td id="optES">-</td>
+                                <td id="optSD">-</td>
+                                <td id="optVar">-</td>
+                            </tr>
+                            <tr>
+                                <td class="twap-cell">Linear TWAP</td>
+                                <td id="twapES">-</td>
+                                <td id="twapSD">-</td>
+                                <td id="twapVar">-</td>
+                            </tr>
+                            <tr>
+                                <td class="vwap-cell">Volume-Weighted VWAP</td>
+                                <td id="vwapES">-</td>
+                                <td id="vwapSD">-</td>
+                                <td id="vwapVar">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- AI analyst card -->
+                <div class="panel">
+                    <div class="panel-title">AI Quant Analyst Pre-Trade Report</div>
+                    <div class="report-box" id="reportContent">
+                        Select parameter boundaries and run the execution benchmark to trigger the report.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Setup state values & sliders mapping
+        const stepVolInput = document.getElementById('stepVolatility');
+        const stepVolVal = document.getElementById('volVal');
+        stepVolInput.addEventListener('input', (e) => {
+            stepVolVal.textContent = parseFloat(e.target.value).toFixed(2);
+        });
+
+        const lambdaInput = document.getElementById('lambda');
+        const lambdaVal = document.getElementById('lambdaVal');
+        lambdaInput.addEventListener('input', (e) => {
+            const exp = parseFloat(e.target.value);
+            const absoluteVal = Math.pow(10, exp);
+            lambdaVal.textContent = absoluteVal.toExponential(1);
+        });
+
+        // Initialize Chart.js Chart instances
+        let trajectoryChart = null;
+        let varianceChart = null;
+
+        function initializeCharts() {
+            const ctx1 = document.getElementById('trajectoryChart').getContext('2d');
+            trajectoryChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Start', 'Step 1', 'Step 2', 'Step 3', 'Step 4', 'Step 5'],
+                    datasets: [
+                        { label: 'Optimal AC', borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', data: [], borderDash: [2, 2] },
+                        { label: 'TWAP', borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', data: [] },
+                        { label: 'VWAP', borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', data: [] }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    },
+                    plugins: { legend: { labels: { color: '#f3f4f6' } } }
+                }
+            });
+
+            const ctx2 = document.getElementById('varianceChart').getContext('2d');
+            varianceChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['Expected Shortfall (Cost)', 'Risk Standard Deviation'],
+                    datasets: [
+                        { label: 'Optimal AC', backgroundColor: '#8b5cf6', data: [] },
+                        { label: 'TWAP', backgroundColor: '#38bdf8', data: [] },
+                        { label: 'VWAP', backgroundColor: '#f59e0b', data: [] }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    },
+                    plugins: { legend: { labels: { color: '#f3f4f6' } } }
+                }
+            });
+        }
+
+        // Form Submit Handler (Triggers REST API post)
+        document.getElementById('simForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const loader = document.getElementById('loader');
+            loader.classList.add('active');
+
+            // Collect parameters
+            const expVal = parseFloat(lambdaInput.value);
+            const lambda = Math.pow(10, expVal);
+
+            // Read volume profile elements and convert to fractions
+            const p1 = parseFloat(document.getElementById('p1').value) / 100.0;
+            const p2 = parseFloat(document.getElementById('p2').value) / 100.0;
+            const p3 = parseFloat(document.getElementById('p3').value) / 100.0;
+            const p4 = parseFloat(document.getElementById('p4').value) / 100.0;
+            const p5 = parseFloat(document.getElementById('p5').value) / 100.0;
+            const volumeProfile = [p1, p2, p3, p4, p5];
+
+            const requestPayload = {
+                initialPrice: parseFloat(document.getElementById('initialPrice').value),
+                totalShares: parseFloat(document.getElementById('totalShares').value),
+                numSteps: 5,
+                stepVolatility: parseFloat(stepVolInput.value),
+                eta: parseFloat(document.getElementById('eta').value),
+                gamma: parseFloat(document.getElementById('gamma').value),
+                lambda: lambda,
+                volumeProfile: volumeProfile
+            };
+
+            try {
+                const response = await fetch('/api/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestPayload)
+                });
+
+                if (!response.ok) {
+                    const errMsg = await response.text();
+                    throw new Error(errMsg);
+                }
+
+                const data = await response.json();
+                updateUI(data);
+
+            } catch (err) {
+                alert("Simulate Request Failed: " + err.message);
+            } finally {
+                loader.classList.remove('active');
+            }
+        });
+
+        // Map server response fields to DOM and Chart datasets
+        function updateUI(data) {
+            // Update tables
+            document.getElementById('optES').textContent = formatCurrency(data.optimalResult.expectedShortfall);
+            document.getElementById('optSD').textContent = formatCurrency(data.optimalResult.shortfallStandardDeviation);
+            document.getElementById('optVar').textContent = formatCurrency(data.optimalResult.shortfallVariance);
+
+            document.getElementById('twapES').textContent = formatCurrency(data.twapResult.expectedShortfall);
+            document.getElementById('twapSD').textContent = formatCurrency(data.twapResult.shortfallStandardDeviation);
+            document.getElementById('twapVar').textContent = formatCurrency(data.twapResult.shortfallVariance);
+
+            document.getElementById('vwapES').textContent = formatCurrency(data.vwapResult.expectedShortfall);
+            document.getElementById('vwapSD').textContent = formatCurrency(data.vwapResult.shortfallStandardDeviation);
+            document.getElementById('vwapVar').textContent = formatCurrency(data.vwapResult.shortfallVariance);
+
+            // Update Trajectory Chart
+            trajectoryChart.data.datasets[0].data = data.optimalTrajectory;
+            trajectoryChart.data.datasets[1].data = data.twapTrajectory;
+            trajectoryChart.data.datasets[2].data = data.vwapTrajectory;
+            trajectoryChart.update();
+
+            // Update Cost-Risk Bar Chart
+            varianceChart.data.datasets[0].data = [data.optimalResult.expectedShortfall, data.optimalResult.shortfallStandardDeviation];
+            varianceChart.data.datasets[1].data = [data.twapResult.expectedShortfall, data.twapResult.shortfallStandardDeviation];
+            varianceChart.data.datasets[2].data = [data.vwapResult.expectedShortfall, data.vwapResult.shortfallStandardDeviation];
+            varianceChart.update();
+
+            // Render Markdown Analyst report simple formatter
+            renderReport(data.aiReport);
+        }
+
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+        }
+
+        function renderReport(mdText) {
+            const container = document.getElementById('reportContent');
+            // Basic markdown string parser for formatting report cards
+            let html = mdText
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+                .replace(/^\* (.*$)/gim, '<li>$1</li>');
+            
+            // Wrap bullet lists
+            if (html.includes('<li>')) {
+                html = html.replace(/(<li>.*<\/li>)/sim, '<ul>$1</ul>');
+            }
+            container.innerHTML = html;
+        }
+
+        // On window load
+        initializeCharts();
+    </script>
+</body>
+</html>
