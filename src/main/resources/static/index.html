@@ -220,12 +220,23 @@
             background: #a5b4fc;
         }
 
-        .range-container span {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            min-width: 55px;
+        .inline-num-input {
+            width: 85px !important;
+            background: #141418 !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-main) !important;
+            padding: 0.25rem 0.4rem !important;
+            border-radius: 4px !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.8rem !important;
             text-align: right;
-            color: var(--text-main);
+            transition: border-color 0.15s ease;
+        }
+        
+        .inline-num-input:focus {
+            outline: none !important;
+            border-color: var(--accent-primary) !important;
+            box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.15);
         }
 
         /* Custom inputs for Volume profile segments */
@@ -496,15 +507,15 @@
                     <label for="stepVolatility">Volatility per Step</label>
                     <div class="range-container">
                         <input type="range" id="stepVolatility" min="0.01" max="0.50" step="0.01" value="0.30">
-                        <span id="volVal">0.30</span>
+                        <input type="number" id="volInput" min="0.001" max="10.0" step="0.001" value="0.30" class="inline-num-input">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="lambda">Risk Aversion (&lambda;)</label>
                     <div class="range-container">
-                        <input type="range" id="lambda" min="-6" max="-1" step="0.5" value="-4">
-                        <span id="lambdaVal">1e-4</span>
+                        <input type="range" id="lambda" min="-6" max="-1" step="0.1" value="-4">
+                        <input type="text" id="lambdaInputText" value="1.00e-4" class="inline-num-input">
                     </div>
                 </div>
 
@@ -625,18 +636,35 @@
 
     <script>
         // Setup state values & sliders mapping
-        const stepVolInput = document.getElementById('stepVolatility');
-        const stepVolVal = document.getElementById('volVal');
-        stepVolInput.addEventListener('input', (e) => {
-            stepVolVal.textContent = parseFloat(e.target.value).toFixed(2);
+        const stepVolSlider = document.getElementById('stepVolatility');
+        const stepVolInput = document.getElementById('volInput');
+
+        // Bidirectional syncing for Volatility
+        stepVolSlider.addEventListener('input', (e) => {
+            stepVolInput.value = parseFloat(e.target.value).toFixed(2);
+        });
+        stepVolInput.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val) || val < 0) val = 0.01;
+            stepVolInput.value = val.toFixed(4);
+            stepVolSlider.value = val;
         });
 
-        const lambdaInput = document.getElementById('lambda');
-        const lambdaVal = document.getElementById('lambdaVal');
-        lambdaInput.addEventListener('input', (e) => {
+        const lambdaSlider = document.getElementById('lambda');
+        const lambdaInputText = document.getElementById('lambdaInputText');
+
+        // Bidirectional syncing for Risk Aversion (lambda)
+        lambdaSlider.addEventListener('input', (e) => {
             const exp = parseFloat(e.target.value);
             const absoluteVal = Math.pow(10, exp);
-            lambdaVal.textContent = absoluteVal.toExponential(1);
+            lambdaInputText.value = absoluteVal.toExponential(2);
+        });
+        lambdaInputText.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val) || val <= 0) val = 1e-4;
+            lambdaInputText.value = val.toExponential(4);
+            const logVal = Math.log10(val);
+            lambdaSlider.value = logVal;
         });
 
         // Initialize Chart.js Chart instances
@@ -824,9 +852,9 @@
             const loader = document.getElementById('loader');
             loader.classList.add('active');
 
-            // Collect parameters
-            const expVal = parseFloat(lambdaInput.value);
-            const lambda = Math.pow(10, expVal);
+            // Read parameters directly from input fields
+            const stepVolValue = parseFloat(stepVolInput.value);
+            const lambda = parseFloat(lambdaInputText.value);
 
             // Read volume profile elements and convert to fractions
             const p1 = parseFloat(document.getElementById('p1').value) / 100.0;
@@ -840,7 +868,7 @@
                 initialPrice: parseFloat(document.getElementById('initialPrice').value),
                 totalShares: parseFloat(document.getElementById('totalShares').value),
                 numSteps: 5,
-                stepVolatility: parseFloat(stepVolInput.value),
+                stepVolatility: stepVolValue,
                 eta: parseFloat(document.getElementById('eta').value),
                 gamma: parseFloat(document.getElementById('gamma').value),
                 lambda: lambda,
