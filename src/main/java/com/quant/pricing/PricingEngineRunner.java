@@ -72,18 +72,8 @@ public class PricingEngineRunner implements CommandLineRunner {
             System.out.println("  export GEMINI_API_KEY=\"your-key-here\"");
             System.out.println("  ./gradlew bootRun");
         } else {
-            System.out.println("\nContacting Agentic AI Quant Analyst...");
-            try {
-                String query = String.format(
-                        "Please analyze a liquidation order of %.0f shares at initial price %.2f. " +
-                        "Compare TWAP vs Optimal Trajectory with lambda=%.1e, step volatility=%.2f, eta=%.1e, gamma=%.1e.",
-                        totalShares, initialPrice, lambda, stepVolatility, eta, gamma);
-                String response = agent.analyzeOrder(query);
-                System.out.println("\nAI Analyst Report:");
-                System.out.println(response);
-            } catch (Exception e) {
-                System.err.println("Agent failed: " + e.getMessage());
-            }
+            System.out.println("\n[Note] GEMINI_API_KEY detected. AI Quant Analyst is active on the dashboard.");
+            System.out.println("Open http://localhost:8080 to trigger live reports via the UI.");
         }
         System.out.println("==================================================");
     }

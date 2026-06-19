@@ -69,60 +69,57 @@ public class SimulationController {
     }
 
     @PostMapping("/report")
-    public String generateReport(@RequestBody SimulationRequest request) {
+    public String generateReport(
+            @RequestBody ReportRequest reportPayload,
+            @RequestParam(name = "bypassAI", defaultValue = "false") boolean bypassAI
+    ) {
+        SimulationRequest request = reportPayload.request();
+        ExecutionResult optimalRes = reportPayload.optimalResult();
+        ExecutionResult twapRes = reportPayload.twapResult();
+        ExecutionResult vwapRes = reportPayload.vwapResult();
+
         String apiKey = System.getenv("GEMINI_API_KEY");
-        if (apiKey == null || apiKey.isBlank()) {
-            return getLocalReport(request);
+        if (bypassAI || apiKey == null || apiKey.isBlank()) {
+            return formatLocalReport(optimalRes, twapRes, vwapRes, null);
         }
+
         try {
             String query = String.format(
-                    "Please analyze a liquidation order of %.0f shares at initial price %.2f. " +
-                    "Compare TWAP vs Optimal Trajectory with lambda=%.1e, step volatility=%.2f, eta=%.1e, gamma=%.1e.",
-                    request.totalShares(), request.initialPrice(), request.lambda(), request.stepVolatility(), request.eta(), request.gamma());
+                    "Order: %.0f shares @ %.2f USD. Params: lambda=%.1e, vol=%.2f, eta=%.1e, gamma=%.1e.\n" +
+                    "Pre-calculated simulation results (10,000 paths):\n" +
+                    "- Optimal: ES=%.2f USD, SD=%.2f USD\n" +
+                    "- TWAP: ES=%.2f USD, SD=%.2f USD\n" +
+                    "- VWAP: ES=%.2f USD, SD=%.2f USD",
+                    request.totalShares(), request.initialPrice(),
+                    request.lambda(), request.stepVolatility(), request.eta(), request.gamma(),
+                    optimalRes.expectedShortfall(), optimalRes.shortfallStandardDeviation(),
+                    twapRes.expectedShortfall(), twapRes.shortfallStandardDeviation(),
+                    vwapRes.expectedShortfall(), vwapRes.shortfallStandardDeviation()
+            );
             return agent.analyzeOrder(query);
         } catch (Exception e) {
-            return "AI Analyst consultation failed: " + e.getMessage();
+            return formatLocalReport(optimalRes, twapRes, vwapRes, e.getMessage());
         }
     }
 
-    private String getLocalReport(SimulationRequest request) {
-        double tau = 1.0;
-        double[] optimal = optimizer.optimize(
-                request.totalShares(), request.numSteps(), request.stepVolatility(), 
-                request.lambda(), request.eta(), request.gamma(), tau
-        );
-        double[] twap = optimizer.optimize(
-                request.totalShares(), request.numSteps(), request.stepVolatility(), 
-                0.0, request.eta(), request.gamma(), tau
-        );
-        double[] volumeProfile = request.volumeProfile();
-        if (volumeProfile == null || volumeProfile.length == 0) {
-            volumeProfile = new double[]{0.35, 0.15, 0.10, 0.15, 0.25};
+    private String formatLocalReport(ExecutionResult optimalRes, ExecutionResult twapRes, ExecutionResult vwapRes, String apiError) {
+        String note;
+        if (apiError != null) {
+            note = String.format("*Note: Gemini API failed (%s). Fell back to Local Pre-Trade Report.*", apiError);
+        } else {
+            note = "*Note: Export your `GEMINI_API_KEY` to unlock live Gemini analysis.*";
         }
-        double[] vwap = vwapGenerator.generate(request.totalShares(), volumeProfile);
-
-        ExecutionResult optimalRes = simulator.simulate(
-                request.initialPrice(), optimal, request.numSteps(), 
-                request.stepVolatility(), request.eta(), request.gamma(), tau, 1000
-        );
-        ExecutionResult twapRes = simulator.simulate(
-                request.initialPrice(), twap, request.numSteps(), 
-                request.stepVolatility(), request.eta(), request.gamma(), tau, 1000
-        );
-        ExecutionResult vwapRes = simulator.simulate(
-                request.initialPrice(), vwap, request.numSteps(), 
-                request.stepVolatility(), request.eta(), request.gamma(), tau, 1000
-        );
 
         return String.format(
             "### Pre-Trade Cost & Risk Summary (Local Mode)\n\n" +
             "* **Optimal AC**: Minimizes risk (SD: %.2f USD) by front-loading sales, but costs more (Shortfall: %.2f USD).\n" +
             "* **TWAP**: Minimizes cost (Shortfall: %.2f USD) but exposes the trade to maximum market risk (SD: %.2f USD).\n" +
             "* **VWAP**: Balanced curve matching intraday volume (Shortfall: %.2f USD, SD: %.2f USD).\n\n" +
-            "*Note: Export your `GEMINI_API_KEY` to unlock live Gemini analysis.*",
+            "%s",
             optimalRes.shortfallStandardDeviation(), optimalRes.expectedShortfall(),
             twapRes.expectedShortfall(), twapRes.shortfallStandardDeviation(),
-            vwapRes.expectedShortfall(), vwapRes.shortfallStandardDeviation()
+            vwapRes.expectedShortfall(), vwapRes.shortfallStandardDeviation(),
+            note
         );
     }
 }

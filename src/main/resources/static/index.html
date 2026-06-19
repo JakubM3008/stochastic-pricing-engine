@@ -3,112 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stochastic Execution Simulator</title>
-    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <title>Stochastic Execution Simulator [AC_SIM]</title>
+    <!-- Google Fonts: JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-color: #09090b;
-            --panel-bg: rgba(18, 18, 22, 0.7);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --border-color-hover: rgba(255, 255, 255, 0.15);
-            --accent-primary: #818cf8; /* Slate Indigo */
-            --accent-optimal: #818cf8;
-            --accent-twap: #64748b;
-            --accent-vwap: #fbbf24;
-            --text-main: #f4f4f5;
-            --text-muted: #71717a;
-            --text-muted-dark: #52525b;
-            --input-bg: #121215;
+            --bg-color: #000000;
+            --panel-bg: #000000;
+            --border-color: #333333;
+            --border-color-hover: #555555;
+            --border-color-focus: #ffa500;
+            --accent-primary: #ffa500; /* Bloomberg Amber/Orange */
+            --accent-optimal: #00ff00; /* Terminal Green */
+            --accent-twap: #ffff00; /* Yellow */
+            --accent-vwap: #00ffff; /* Cyan */
+            --text-main: #ffffff; /* White */
+            --text-muted: #888888; /* Gray */
+            --input-bg: #000000;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            border-radius: 0 !important; /* Zero roundness anywhere */
+            box-shadow: none !important; /* No modern soft shadows */
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'JetBrains Mono', Courier, monospace;
             background-color: var(--bg-color);
-            background-image: 
-                radial-gradient(ellipse at top, rgba(129, 140, 248, 0.04), transparent 60%),
-                radial-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 0);
-            background-size: 100% 100%, 20px 20px;
             color: var(--text-main);
+            font-size: 11px;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
             min-height: 100vh;
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Layout */
+        /* Layout Container */
         .container {
-            max-width: 1320px;
-            margin: 0 auto;
-            padding: 3rem 2rem;
+            max-width: 100%;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            flex: 1;
         }
 
-        header {
-            margin-bottom: 3rem;
+        /* Terminal Top Bar */
+        .terminal-topbar {
+            background-color: #111111;
             border-bottom: 1px solid var(--border-color);
-            padding-bottom: 1.5rem;
+            padding: 0.4rem 0.75rem;
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
-        }
-
-        h1 {
-            font-size: 1.6rem;
-            font-weight: 500;
-            color: #ffffff;
-            letter-spacing: -0.025em;
-        }
-
-        .subtitle {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            margin-top: 0.35rem;
-            font-weight: 400;
-        }
-
-        /* SIMD status indicator */
-        .status-indicator {
-            display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            background: rgba(16, 185, 129, 0.04);
-            border: 1px solid rgba(16, 185, 129, 0.12);
-            padding: 0.4rem 0.8rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: #10b981;
-            letter-spacing: 0.02em;
-        }
-        
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            background-color: #10b981;
-            border-radius: 50%;
-            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
-            animation: pulse 2.5s infinite;
+            font-size: 10px;
+            color: var(--accent-primary);
+            font-weight: 700;
+            text-transform: uppercase;
         }
 
-        @keyframes pulse {
-            0% { opacity: 0.4; }
-            50% { opacity: 1; }
-            100% { opacity: 0.4; }
+        .terminal-topbar-links {
+            display: flex;
+            gap: 1.5rem;
+            color: var(--accent-optimal);
         }
 
+        .terminal-topbar-links span {
+            cursor: pointer;
+        }
+
+        .terminal-topbar-links span:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        /* Dashboard Grid Layout */
         .dashboard-grid {
             display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 2rem;
+            grid-template-columns: 340px 1fr;
+            gap: 0.75rem;
             align-items: start;
         }
 
@@ -118,132 +100,68 @@
             }
         }
 
-        /* Minimalist Panels */
+        /* Flat Terminal Panels */
         .panel {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1.5rem;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
-            transition: border-color 0.2s ease;
-        }
-
-        .panel:hover {
-            border-color: rgba(255, 255, 255, 0.12);
+            padding: 0.75rem;
+            position: relative;
+            contain: content;
+            will-change: transform;
         }
 
         .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
+            background: #111111;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.25rem 0.5rem;
+            margin-bottom: 0.75rem;
         }
 
         .panel-title {
-            font-size: 0.75rem;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-muted);
+            color: var(--accent-primary);
         }
 
         /* Form elements */
         .form-group {
-            margin-bottom: 1.25rem;
+            margin-bottom: 0.75rem;
         }
 
         label {
             display: block;
-            font-size: 0.7rem;
-            font-weight: 600;
+            font-size: 10px;
+            font-weight: 700;
             color: var(--text-muted);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
         }
 
-        input[type="number"], input[type="time"] {
+        input[type="number"], input[type="time"], input[type="text"] {
             width: 100%;
             background: var(--input-bg);
             border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 0.6rem 0.75rem;
-            border-radius: 6px;
+            color: #ffffff;
+            padding: 0.35rem 0.5rem;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            font-size: 11px;
         }
 
-        input[type="number"]:focus, input[type="time"]:focus {
+        input[type="number"]:focus, input[type="time"]:focus, input[type="text"]:focus {
             outline: none;
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.15);
-        }
-
-        /* Range sliders */
-        .range-container {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            padding: 0.5rem 0.75rem;
-            border-radius: 6px;
-        }
-
-        input[type="range"] {
-            -webkit-appearance: none;
-            appearance: none;
-            flex: 1;
-            height: 3px;
-            border-radius: 2px;
-            background: #27272a;
-            outline: none;
-            cursor: pointer;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--accent-primary);
-            border: none;
-            transition: transform 0.1s ease, background-color 0.1s ease;
-        }
-
-        input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.25);
-            background: #a5b4fc;
-        }
-
-        .inline-num-input {
-            width: 85px !important;
-            background: #141418 !important;
-            border: 1px solid var(--border-color) !important;
-            color: var(--text-main) !important;
-            padding: 0.25rem 0.4rem !important;
-            border-radius: 4px !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            font-size: 0.8rem !important;
-            text-align: right;
-            transition: border-color 0.15s ease;
-        }
-        
-        .inline-num-input:focus {
-            outline: none !important;
-            border-color: var(--accent-primary) !important;
-            box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.15);
-        }
-
-        .suggested-range {
-            font-size: 0.65rem;
+            border-color: var(--border-color-focus);
             color: var(--accent-primary);
-            opacity: 0.85;
-            margin-top: 0.25rem;
+        }
+
+        /* Suggested range inline feedback */
+        .suggested-range {
+            font-size: 9px;
+            color: var(--accent-primary);
+            margin-top: 0.15rem;
             font-family: 'JetBrains Mono', monospace;
             display: none;
         }
@@ -252,23 +170,15 @@
             display: block;
         }
 
-        .profile-segments.profile-error {
-            border-color: #ef4444 !important;
-            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
-        }
-
-        /* Custom inputs for Volume profile segments */
+        /* Segmented volume profile grid */
         .profile-segments {
             display: flex;
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            overflow: hidden;
             background: var(--input-bg);
-            transition: border-color 0.15s ease;
         }
 
-        .profile-segments:focus-within {
-            border-color: var(--accent-primary);
+        .profile-segments.profile-error {
+            border-color: #ff3333 !important;
         }
 
         .segment-field {
@@ -277,7 +187,7 @@
             flex-direction: column;
             align-items: center;
             border-right: 1px solid var(--border-color);
-            padding: 0.4rem 0.2rem;
+            padding: 0.25rem 0.1rem;
         }
 
         .segment-field:last-child {
@@ -285,10 +195,10 @@
         }
 
         .segment-label {
-            font-size: 0.6rem;
-            font-weight: 600;
+            font-size: 9px;
+            font-weight: 700;
             color: var(--text-muted);
-            margin-bottom: 0.2rem;
+            margin-bottom: 0.1rem;
         }
 
         .segment-field input {
@@ -297,11 +207,15 @@
             border: none !important;
             text-align: center;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            color: var(--text-main);
+            font-size: 11px;
+            color: #ffffff;
             padding: 0.1rem 0;
             outline: none;
             -moz-appearance: textfield;
+        }
+
+        .segment-field input:focus {
+            color: var(--accent-primary);
         }
 
         .segment-field input::-webkit-outer-spin-button,
@@ -310,85 +224,115 @@
             margin: 0;
         }
 
+        /* Terminal Style Action Buttons */
         .btn {
             display: block;
             width: 100%;
-            background: #f4f4f5;
-            color: #09090b;
-            border: none;
-            padding: 0.75rem;
-            border-radius: 6px;
-            font-weight: 500;
-            font-size: 0.85rem;
+            background: #000000;
+            color: var(--accent-optimal);
+            border: 1px solid var(--accent-optimal);
+            padding: 0.5rem;
+            font-weight: 700;
+            font-size: 11px;
             cursor: pointer;
-            transition: background 0.15s ease, transform 0.1s ease;
+            text-transform: uppercase;
             text-align: center;
-            margin-top: 1.5rem;
+            margin-top: 1rem;
         }
 
         .btn:hover {
-            background: #ffffff;
-            transform: translateY(-1px);
+            background: var(--accent-optimal);
+            color: #000000;
         }
 
         .btn:active {
-            background: #e4e4e7;
-            transform: translateY(0);
-        }
-
-        @keyframes rainbow-shimmer {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .ai-loading-bar {
-            height: 3px;
-            width: 100%;
-            background: linear-gradient(90deg, #ff007f, #7f00ff, #00f0ff, #7f00ff, #ff007f);
-            background-size: 400% 400%;
-            animation: rainbow-shimmer 3s ease infinite;
-            border-radius: 2px;
-            margin-bottom: 0.75rem;
+            background: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
         }
 
         .sec-btn {
-            background: transparent;
+            background: #000000;
             border: 1px solid var(--border-color);
             color: var(--text-muted);
-            padding: 0.25rem 0.6rem;
-            border-radius: 4px;
-            font-size: 0.65rem;
-            font-weight: 500;
+            padding: 0.15rem 0.4rem;
+            font-size: 10px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.15s ease;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
         }
 
         .sec-btn:hover {
-            border-color: var(--border-color-hover);
+            border-color: var(--text-main);
             color: var(--text-main);
-            background: rgba(255, 255, 255, 0.02);
+            background: #111111;
         }
 
         .btn:disabled {
-            opacity: 0.4;
+            opacity: 0.25;
             cursor: not-allowed;
-            pointer-events: none;
+            border-color: var(--border-color);
+            color: var(--text-muted);
         }
 
-        /* Main Content Layout */
-        .main-content {
+        /* Monospace ASCII Loading Animations */
+        .loading {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
             display: flex;
-            flex-direction: column;
-            gap: 2rem;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            border: 1px solid var(--border-color);
+            will-change: opacity, transform;
+            transform: translate3d(0, 0, 0); /* Dedicated GPU compositor layer */
         }
 
+        .loading.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        @keyframes terminal-loading {
+            0% { content: "[ - ] CALCULATING SCHEDULERS..."; }
+            25% { content: "[ \\ ] CALCULATING SCHEDULERS..."; }
+            50% { content: "[ | ] CALCULATING SCHEDULERS..."; }
+            75% { content: "[ / ] CALCULATING SCHEDULERS..."; }
+        }
+        
+        /* Active scoped animation to prevent background GPU/CPU cycle leakage */
+        .loading.active .terminal-spinner::after {
+            content: "[ - ] CALCULATING SCHEDULERS...";
+            animation: terminal-loading 0.8s steps(4) infinite;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: bold;
+            color: var(--accent-primary);
+            font-size: 11px;
+        }
+
+        @keyframes analyst-loading {
+            0% { content: "SYS_PROCESSOR: STREAMING JVM MONTE CARLO STATS [ | ]"; }
+            25% { content: "SYS_PROCESSOR: DECRYPTING MARKET ENVELOPE      [ / ]"; }
+            50% { content: "SYS_PROCESSOR: CALCULATING RISK TRAJECTORIES    [ - ]"; }
+            75% { content: "SYS_PROCESSOR: COMPILING Pre-Trade REPORT       [ \\ ]"; }
+        }
+        .analyst-spinner::after {
+            content: "SYS_PROCESSOR: INITIALIZING RUN [ - ]";
+            animation: analyst-loading 1.6s steps(4) infinite;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-primary);
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* High-Density Charts Layout */
         .charts-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 2rem;
+            gap: 0.75rem;
         }
 
         @media (max-width: 768px) {
@@ -399,31 +343,37 @@
 
         .chart-box {
             position: relative;
-            height: 320px;
+            height: 240px;
             width: 100%;
-            margin-top: 1rem;
+            margin-top: 0.5rem;
+            border: 1px solid var(--border-color);
+            background-color: #000000;
+            padding: 0.25rem;
+            contain: content;
+            will-change: transform;
         }
 
-        /* Tables */
+        /* Monospace Grid Tables */
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 0.5rem;
-            font-size: 0.85rem;
+            font-size: 11px;
+            border: 1px solid var(--border-color);
         }
 
         th, td {
             text-align: left;
-            padding: 0.8rem 1rem;
-            border-bottom: 1px solid var(--border-color);
+            padding: 0.4rem 0.6rem;
+            border: 1px solid var(--border-color);
         }
 
         th {
-            color: var(--text-muted);
-            font-weight: 500;
+            background-color: #111111;
+            color: var(--accent-primary);
+            font-weight: 700;
             text-transform: uppercase;
-            font-size: 0.7rem;
-            letter-spacing: 0.05em;
+            font-size: 10px;
         }
 
         td {
@@ -436,33 +386,62 @@
         }
 
         tr:hover td {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.01);
+            background: #111111;
         }
 
-        .optimal-cell { color: var(--accent-optimal); font-weight: 600; }
-        .twap-cell { color: var(--accent-twap); font-weight: 500; }
-        .vwap-cell { color: var(--accent-vwap); font-weight: 500; }
+        .optimal-cell { color: var(--accent-optimal); font-weight: 700; }
+        .twap-cell { color: var(--accent-twap); font-weight: 700; }
+        .vwap-cell { color: var(--accent-vwap); font-weight: 700; }
 
-        /* AI Analyst Report container */
+        /* Custom Toggle Switch Bracket [X]/[ ] styling */
+        .terminal-toggle {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .terminal-toggle input {
+            display: none;
+        }
+        .terminal-toggle span::before {
+            content: "[ ] ";
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .terminal-toggle input:checked + span::before {
+            content: "[X] ";
+            color: var(--accent-optimal);
+        }
+        .terminal-toggle input:checked + span {
+            color: var(--accent-optimal);
+        }
+
+        /* Quant Report Container (CRT console styling) */
         .report-box {
-            background: var(--input-bg);
+            background: #000000;
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 1.25rem 1.5rem;
-            font-family: 'Inter', sans-serif;
-            line-height: 1.65;
-            color: #d4d4d8;
+            padding: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.5;
+            color: var(--accent-optimal); /* Green screen printout style */
+            font-size: 11px;
+            white-space: pre-wrap;
+            contain: content;
+            will-change: transform;
         }
 
         .report-box h3 {
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-top: 1.25rem;
-            margin-bottom: 0.5rem;
-            color: #ffffff;
+            margin-top: 0.75rem;
+            margin-bottom: 0.25rem;
+            color: var(--accent-twap); /* Yellow titles */
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.1rem;
         }
 
         .report-box h3:first-child {
@@ -472,85 +451,89 @@
         .report-box ul {
             list-style: none;
             padding-left: 0;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
         }
 
         .report-box li {
             position: relative;
-            padding-left: 1.25rem;
-            margin-bottom: 0.4rem;
-            font-size: 0.85rem;
+            padding-left: 1rem;
+            margin-bottom: 0.2rem;
         }
 
         .report-box li::before {
-            content: "—";
-            color: var(--text-muted);
+            content: ">";
+            color: var(--accent-twap);
             position: absolute;
             left: 0;
             top: 0;
+            font-weight: 700;
         }
 
         .report-box strong {
             color: #ffffff;
-            font-weight: 500;
+            font-weight: 700;
         }
 
-        /* Loading / Blur Spinner */
-        .loading {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(9, 9, 11, 0.7);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+        /* Documentation Modal Overlay */
+        #helpModal {
+            display: none;
+            position: fixed;
+            top: 15%;
+            left: 20%;
+            width: 60%;
+            background: #000000;
+            border: 1px solid var(--accent-primary);
+            padding: 1.25rem;
+            z-index: 100;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        #helpOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 99;
+        }
+
+        /* Terminal Footer Status Bar */
+        .terminal-footer {
+            background-color: #111111;
+            border-top: 1px solid var(--border-color);
+            padding: 0.3rem 0.75rem;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 8px;
-            z-index: 10;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
-
-        .loading.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        .spinner {
-            width: 32px;
-            height: 32px;
-            border: 2px solid rgba(255, 255, 255, 0.05);
-            border-top: 2px solid var(--accent-primary);
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            justify-content: space-between;
+            font-size: 9px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: auto;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <header>
-            <div>
-                <h1>Stochastic Execution Simulator</h1>
-                <div class="subtitle">Almgren-Chriss Optimal Liquidation Strategy Benchmark</div>
-            </div>
-            <div class="status-indicator">
-                <span class="status-dot"></span>
-                <span>SIMD Core Active</span>
-            </div>
-        </header>
+    <!-- Bloomberg Top Bar -->
+    <div class="terminal-topbar">
+        <div>AC_SIM &lt;Go&gt;   ALMGREN-CHRISS RISK TERMINAL</div>
+        <div class="terminal-topbar-links">
+            <span onclick="toggleHelp()">F1:HELP</span>
+            <span onclick="resetParameters()">F2:RESET</span>
+            <span onclick="randomizeVolumeProfile()">F3:RANDOMISE</span>
+            <span style="color: var(--accent-optimal);">STATUS: ONLINE</span>
+        </div>
+    </div>
 
+    <div class="container">
         <div class="dashboard-grid">
+            
             <!-- Left panel: Control parameters -->
             <form id="simForm" class="panel">
                 <div class="panel-header">
-                    <span class="panel-title">Simulation parameters</span>
+                    <span class="panel-title">1 &lt;Go&gt; Setup Parameters</span>
                 </div>
 
                 <div class="form-group">
@@ -566,56 +549,50 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="stepVolatility">Volatility per Step</label>
-                    <div class="range-container">
-                        <input type="range" id="stepVolatility" min="0.01" max="0.50" step="0.01" value="0.30">
-                        <input type="number" id="volInput" min="0.001" max="10.0" step="0.001" value="0.30" class="inline-num-input">
-                    </div>
+                    <label for="volInput">Volatility per Step</label>
+                    <input type="text" id="volInput" value="0.30">
                     <div class="suggested-range" id="range-volatility"></div>
                 </div>
 
                 <div class="form-group">
-                    <label for="lambda">Risk Aversion (&lambda;)</label>
-                    <div class="range-container">
-                        <input type="range" id="lambda" min="-6" max="-1" step="0.1" value="-4">
-                        <input type="text" id="lambdaInputText" value="1.00e-4" class="inline-num-input">
-                    </div>
+                    <label for="lambdaInputText">Risk Aversion (&lambda;)</label>
+                    <input type="text" id="lambdaInputText" value="1.00e-4">
                     <div class="suggested-range" id="range-lambda"></div>
                 </div>
 
                 <div class="form-group">
                     <label for="eta">Temporary Impact (&eta;)</label>
-                    <input type="number" id="eta" value="0.00001" step="0.000001">
+                    <input type="text" id="eta" value="1.00e-5">
                     <div class="suggested-range" id="range-eta"></div>
                 </div>
 
                 <div class="form-group">
                     <label for="gamma">Permanent Impact (&gamma;)</label>
-                    <input type="number" id="gamma" value="0.000001" step="0.0000001">
+                    <input type="text" id="gamma" value="1.00e-6">
                     <div class="suggested-range" id="range-gamma"></div>
                 </div>
 
                 <div class="form-group">
                     <label>Liquidation Time Window</label>
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.25rem;">
                         <div style="flex: 1;">
-                            <label style="font-size: 0.6rem; color: var(--text-muted); margin-bottom: 0.25rem;">Start Time</label>
+                            <label style="font-size: 9px; color: var(--text-muted); margin-bottom: 0.15rem;">Start Time</label>
                             <input type="time" id="startTime" value="09:30" step="1800">
                         </div>
                         <div style="flex: 1;">
-                            <label style="font-size: 0.6rem; color: var(--text-muted); margin-bottom: 0.25rem;">End Time</label>
+                            <label style="font-size: 9px; color: var(--text-muted); margin-bottom: 0.15rem;">End Time</label>
                             <input type="time" id="endTime" value="12:00" step="1800">
                         </div>
                     </div>
-                    <div id="timeWindowInfo" style="font-size: 0.65rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+                    <div id="timeWindowInfo" style="font-size: 9px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
                         Duration: 2.5 hours (5 bins of 30 min)
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <div class="panel-header" style="margin-bottom: 0.5rem;">
-                        <label style="margin-bottom: 0;">Intraday Volume Profile (%)</label>
-                        <button type="button" id="randomiseProfileBtn" class="sec-btn">Randomise</button>
+                    <div class="panel-header" style="margin-bottom: 0.25rem; padding: 0.1rem 0.25rem;">
+                        <label style="margin-bottom: 0; font-size: 9px;">Intraday Volume Profile (%)</label>
+                        <button type="button" id="randomiseProfileBtn" class="sec-btn" style="font-size: 9px; padding: 0.05rem 0.25rem;">Randomise</button>
                     </div>
                     <div class="profile-segments">
                         <div class="segment-field">
@@ -639,23 +616,29 @@
                             <input type="number" id="p5" value="25.00" min="0" max="100" step="0.01">
                         </div>
                     </div>
-                    <div id="profileWarning" style="color: #ef4444; font-size: 0.65rem; margin-top: 0.35rem; font-family: 'JetBrains Mono', monospace; display: none;"></div>
+                    <div id="profileWarning" style="color: #ff3333; font-size: 9px; margin-top: 0.25rem; font-family: 'JetBrains Mono', monospace; display: none;"></div>
                 </div>
 
-                <button type="submit" class="btn">Execute Benchmark</button>
+                <button type="submit" class="btn">EXECUTE &lt;Go&gt;</button>
             </form>
 
             <!-- Right side content -->
-            <div class="main-content">
+            <div class="main-content" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                
+                <!-- Curves and Graphs panel -->
                 <div class="panel" style="position: relative;">
                     <div class="loading" id="loader">
-                        <div class="spinner"></div>
+                        <div class="terminal-spinner"></div>
+                    </div>
+
+                    <div class="panel-header">
+                        <span class="panel-title">2 &lt;Go&gt; Decay Curves &amp; Risk Profiles</span>
                     </div>
 
                     <div class="charts-container">
                         <!-- Chart 1: Holding Trajectories -->
                         <div>
-                            <span class="panel-title">Holding Schedules (Decay Curves)</span>
+                            <span style="font-size: 10px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Holding Schedules (Decay Curves)</span>
                             <div class="chart-box">
                                 <canvas id="trajectoryChart"></canvas>
                             </div>
@@ -663,7 +646,7 @@
 
                         <!-- Chart 2: Cost-Risk comparison -->
                         <div>
-                            <span class="panel-title">Shortfall Cost (ES) vs Volatility Risk (SD)</span>
+                            <span style="font-size: 10px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Shortfall Cost (ES) vs Volatility Risk (SD)</span>
                             <div class="chart-box">
                                 <canvas id="varianceChart"></canvas>
                             </div>
@@ -674,7 +657,7 @@
                 <!-- Metrics breakdown table -->
                 <div class="panel">
                     <div class="panel-header">
-                        <span class="panel-title">Monte Carlo Backtesting Performance (10,000 paths)</span>
+                        <span class="panel-title">3 &lt;Go&gt; Monte Carlo Backtesting Performance (10,000 paths)</span>
                     </div>
                     <table>
                         <thead>
@@ -711,55 +694,101 @@
                 <!-- AI analyst card -->
                 <div class="panel">
                     <div class="panel-header">
-                        <span class="panel-title">AI Quant Pre-Trade Analysis Report</span>
+                        <span class="panel-title">4 &lt;Go&gt; Speculative Risk report</span>
+                        <label class="terminal-toggle">
+                            <input type="checkbox" id="aiToggle" checked>
+                            <span>LIVE GEMINI API</span>
+                        </label>
                     </div>
-                    <div class="report-box" id="reportContent">
-                        Configure simulation boundaries and run the execution benchmark to trigger the report.
-                    </div>
+                    <div class="report-box" id="reportContent">Configure simulation boundaries and run the execution benchmark to trigger the report.</div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Documentation Modal Drawer -->
+    <div id="helpOverlay" onclick="toggleHelp()"></div>
+    <div id="helpModal">
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--accent-primary); padding-bottom: 0.5rem; margin-bottom: 1rem; font-weight: bold; color: var(--accent-primary); text-transform: uppercase;">
+            <span>Almgren-Chriss Parameters Help Documentation</span>
+            <span style="cursor: pointer;" onclick="toggleHelp()">[CLOSE X]</span>
+        </div>
+        <div style="color: #ffffff; line-height: 1.6;">
+            <p style="margin-bottom: 0.5rem;"><strong>TOTAL SHARES:</strong> The absolute size of the position to liquidate during the time window.</p>
+            <p style="margin-bottom: 0.5rem;"><strong>INITIAL PRICE:</strong> Initial mid-market price of the asset in USD.</p>
+            <p style="margin-bottom: 0.5rem;"><strong>VOLATILITY PER STEP:</strong> Forecasted asset returns standard deviation per interval step.</p>
+            <p style="margin-bottom: 0.5rem;"><strong>RISK AVERSION (&lambda;):</strong> Controls trade-off between execution cost and market volatility risk. High values accelerate trade execution to secure capital, whereas low values delay execution to avoid market impact costs.</p>
+            <p style="margin-bottom: 0.5rem;"><strong>TEMPORARY IMPACT (&eta;):</strong> Price slippage impact coefficient (proportional to execution rate).</p>
+            <p style="margin-bottom: 0.5rem;"><strong>PERMANENT IMPACT (&gamma;):</strong> Permanent price degradation impact coefficient (proportional to total shares sold).</p>
+            <p style="margin-bottom: 0.5rem;"><strong>LIQUIDATION TIME WINDOW:</strong> Total active trading session. Calculated intervals (bins) split the window into equal 30-minute intervals.</p>
+            <p style="margin-bottom: 0.5rem;"><strong>INTRADAY VOLUME PROFILE:</strong> Target percentage allocation of volume across the respective trading bins.</p>
+        </div>
+        <div style="margin-top: 1rem; text-align: right; color: var(--text-muted); font-size: 10px;">
+            Press <span style="color: var(--accent-primary); font-weight: bold;">F1</span> again or click close to return to the active terminal.
+        </div>
+    </div>
+
+    <!-- Bloomberg Footer Status Bar -->
+    <div class="terminal-footer">
+        <div>PORT: 8080 | ENGINE: JVM STOCHASTIC RISK ENGINE v2.0</div>
+        <div>SPECULATIVE ANALYTICS POWERED BY CO-PROCESSOR GEMINI</div>
+    </div>
+
     <script>
+        /*
+         * WIRE CONTRACT MAPPING (Java DTO Models <=> JavaScript Objects)
+         *
+         * Java DTO: com.quant.pricing.controller.SimulationController.SimulationRequest
+         * export interface SimulationRequest {
+         *   initialPrice: number;    // Maps from Java double (USD)
+         *   totalShares: number;     // Maps from Java double
+         *   numSteps: number;        // Maps from Java int
+         *   stepVolatility: number;  // Maps from Java double (sigma per step)
+         *   eta: number;             // Maps from Java double (Temporary impact)
+         *   gamma: number;           // Maps from Java double (Permanent impact)
+         *   lambda: number;          // Maps from Java double (Risk aversion)
+         *   volumeProfile: number[]; // Maps from Java double[] (Percentage profile)
+         * }
+         *
+         * Java DTO: com.quant.pricing.controller.SimulationController.SimulationResponse
+         * export interface SimulationResponse {
+         *   optimalTrajectory: number[];
+         *   twapTrajectory: number[];
+         *   vwapTrajectory: number[];
+         *   optimalResult: ExecutionResult;
+         *   twapResult: ExecutionResult;
+         *   vwapResult: ExecutionResult;
+         *   reportMarkdown: string | null;
+         * }
+         *
+         * Java DTO: com.quant.pricing.domain.ExecutionResult
+         * export interface ExecutionResult {
+         *   expectedShortfall: number;          // Maps from Java double
+         *   shortfallVariance: number;           // Maps from Java double
+         *   shortfallStandardDeviation: number;  // Maps from Java double
+         * }
+         */
+
         const isDemo = new URLSearchParams(window.location.search).has('demo');
         if (isDemo) {
             document.body.classList.add('demo-active');
         }
 
-        // Setup state values & sliders mapping
-        const stepVolSlider = document.getElementById('stepVolatility');
+        // Target text fields directly (no slider handles)
         const stepVolInput = document.getElementById('volInput');
+        const lambdaInputText = document.getElementById('lambdaInputText');
 
-        // Bidirectional syncing for Volatility
-        stepVolSlider.addEventListener('input', (e) => {
-            stepVolInput.value = parseFloat(e.target.value).toFixed(2);
-            updateSuggestedRanges();
-        });
         stepVolInput.addEventListener('change', (e) => {
             let val = parseFloat(e.target.value);
             if (isNaN(val) || val < 0) val = 0.01;
             stepVolInput.value = val.toFixed(4);
-            stepVolSlider.value = val;
             updateSuggestedRanges();
         });
 
-        const lambdaSlider = document.getElementById('lambda');
-        const lambdaInputText = document.getElementById('lambdaInputText');
-
-        // Bidirectional syncing for Risk Aversion (lambda)
-        lambdaSlider.addEventListener('input', (e) => {
-            const exp = parseFloat(e.target.value);
-            const absoluteVal = Math.pow(10, exp);
-            lambdaInputText.value = absoluteVal.toExponential(2);
-            updateSuggestedRanges();
-        });
         lambdaInputText.addEventListener('change', (e) => {
             let val = parseFloat(e.target.value);
             if (isNaN(val) || val <= 0) val = 1e-4;
             lambdaInputText.value = val.toExponential(4);
-            const logVal = Math.log10(val);
-            lambdaSlider.value = logVal;
             updateSuggestedRanges();
         });
 
@@ -767,29 +796,20 @@
         let trajectoryChart = null;
         let varianceChart = null;
 
-        // Custom styling defaults for Chart.js
-        Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
-        Chart.defaults.color = "#71717a";
-        Chart.defaults.plugins.tooltip.backgroundColor = "#18181b";
-        Chart.defaults.plugins.tooltip.borderColor = "rgba(255,255,255,0.08)";
+        // Strict Retro Monospace style overrides for Chart.js
+        Chart.defaults.font.family = "'JetBrains Mono', Courier, monospace";
+        Chart.defaults.color = "#888888";
+        Chart.defaults.plugins.tooltip.backgroundColor = "#000000";
+        Chart.defaults.plugins.tooltip.borderColor = "#333333";
         Chart.defaults.plugins.tooltip.borderWidth = 1;
         Chart.defaults.plugins.tooltip.titleColor = "#ffffff";
-        Chart.defaults.plugins.tooltip.bodyColor = "#d4d4d8";
-        Chart.defaults.plugins.tooltip.padding = 10;
-        Chart.defaults.plugins.tooltip.cornerRadius = 6;
+        Chart.defaults.plugins.tooltip.bodyColor = "#ffffff";
+        Chart.defaults.plugins.tooltip.padding = 6;
+        Chart.defaults.plugins.tooltip.cornerRadius = 0; /* Square tooltips */
 
         function initializeCharts() {
             const ctx1 = document.getElementById('trajectoryChart').getContext('2d');
             
-            // Create nice subtle gradients for the lines
-            const gradOptimal = ctx1.createLinearGradient(0, 0, 0, 300);
-            gradOptimal.addColorStop(0, 'rgba(129, 140, 248, 0.12)');
-            gradOptimal.addColorStop(1, 'rgba(129, 140, 248, 0.0)');
-
-            const gradVwap = ctx1.createLinearGradient(0, 0, 0, 300);
-            gradVwap.addColorStop(0, 'rgba(251, 191, 36, 0.08)');
-            gradVwap.addColorStop(1, 'rgba(251, 191, 36, 0.0)');
-
             trajectoryChart = new Chart(ctx1, {
                 type: 'line',
                 data: {
@@ -797,37 +817,38 @@
                     datasets: [
                         { 
                             label: 'Optimal AC', 
-                            borderColor: '#818cf8', 
-                            backgroundColor: gradOptimal, 
+                            borderColor: '#00ff00', 
+                            backgroundColor: 'transparent', 
                             data: [], 
-                            fill: true,
+                            fill: false,
                             borderWidth: 2,
-                            pointBackgroundColor: '#818cf8',
-                            pointHoverRadius: 6,
-                            tension: 0.2
+                            pointBackgroundColor: '#00ff00',
+                            pointHoverRadius: 5,
+                            tension: 0 /* Strictly straight line segments */
                         },
                         { 
                             label: 'TWAP', 
-                            borderColor: '#64748b', 
+                            borderColor: '#ffff00', 
                             backgroundColor: 'transparent', 
                             data: [], 
                             fill: false,
                             borderWidth: 1.5,
-                            borderDash: [4, 4],
-                            pointBackgroundColor: '#64748b',
-                            pointHoverRadius: 5,
-                            tension: 0.1
+                            borderDash: [5, 5],
+                            pointBackgroundColor: '#ffff00',
+                            pointHoverRadius: 4,
+                            tension: 0
                         },
                         { 
                             label: 'VWAP', 
-                            borderColor: '#fbbf24', 
-                            backgroundColor: gradVwap, 
+                            borderColor: '#00ffff', 
+                            backgroundColor: 'transparent', 
                             data: [], 
-                            fill: true,
+                            fill: false,
                             borderWidth: 1.5,
-                            pointBackgroundColor: '#fbbf24',
-                            pointHoverRadius: 5,
-                            tension: 0.2
+                            borderDash: [2, 2],
+                            pointBackgroundColor: '#00ffff',
+                            pointHoverRadius: 4,
+                            tension: 0
                         }
                     ]
                 },
@@ -837,7 +858,7 @@
                     scales: {
                         y: { 
                             ticks: { 
-                                color: '#71717a',
+                                color: '#888888',
                                 font: { family: "'JetBrains Mono', monospace", size: 9 },
                                 callback: function(value) {
                                     if (value >= 1e6) return (value / 1e6).toFixed(1) + 'M';
@@ -845,12 +866,12 @@
                                     return value;
                                 }
                             }, 
-                            grid: { color: 'rgba(255,255,255,0.03)' } 
+                            grid: { color: 'rgba(255,255,255,0.05)' } 
                         },
                         x: { 
                             ticks: { 
-                                color: '#71717a',
-                                font: { size: 10 }
+                                color: '#888888',
+                                font: { family: "'JetBrains Mono', monospace", size: 9 }
                             }, 
                             grid: { display: false } 
                         }
@@ -860,10 +881,10 @@
                             position: 'top',
                             align: 'end',
                             labels: { 
-                                color: '#d4d4d8',
+                                color: '#ffffff',
                                 boxWidth: 12,
                                 boxHeight: 3,
-                                font: { size: 11, weight: 500 }
+                                font: { size: 9, weight: 'bold' }
                             } 
                         } 
                     }
@@ -878,26 +899,26 @@
                     datasets: [
                         { 
                             label: 'Optimal AC', 
-                            backgroundColor: '#818cf8', 
-                            hoverBackgroundColor: '#a5b4fc',
+                            backgroundColor: '#00ff00', 
+                            hoverBackgroundColor: '#00cc00',
                             data: [],
-                            borderRadius: 4,
+                            borderRadius: 0, /* Flat square bars */
                             borderSkipped: false
                         },
                         { 
                             label: 'TWAP', 
-                            backgroundColor: '#64748b', 
-                            hoverBackgroundColor: '#94a3b8',
+                            backgroundColor: '#ffff00', 
+                            hoverBackgroundColor: '#cccc00',
                             data: [],
-                            borderRadius: 4,
+                            borderRadius: 0,
                             borderSkipped: false
                         },
                         { 
                             label: 'VWAP', 
-                            backgroundColor: '#fbbf24', 
-                            hoverBackgroundColor: '#fde047',
+                            backgroundColor: '#00ffff', 
+                            hoverBackgroundColor: '#00cccc',
                             data: [],
-                            borderRadius: 4,
+                            borderRadius: 0,
                             borderSkipped: false
                         }
                     ]
@@ -908,7 +929,7 @@
                     scales: {
                         y: { 
                             ticks: { 
-                                color: '#71717a',
+                                color: '#888888',
                                 font: { family: "'JetBrains Mono', monospace", size: 9 },
                                 callback: function(value) {
                                     if (value >= 1e6) return '$' + (value / 1e6).toFixed(1) + 'M';
@@ -916,12 +937,12 @@
                                     return '$' + value;
                                 }
                             }, 
-                            grid: { color: 'rgba(255,255,255,0.03)' } 
+                            grid: { color: 'rgba(255,255,255,0.05)' } 
                         },
                         x: { 
                             ticks: { 
-                                color: '#71717a',
-                                font: { size: 10 }
+                                color: '#888888',
+                                font: { family: "'JetBrains Mono', monospace", size: 9 }
                             }, 
                             grid: { display: false } 
                         }
@@ -931,10 +952,10 @@
                             position: 'top',
                             align: 'end',
                             labels: { 
-                                color: '#d4d4d8',
+                                color: '#ffffff',
                                 boxWidth: 10,
                                 boxHeight: 10,
-                                font: { size: 11, weight: 500 }
+                                font: { size: 9, weight: 'bold' }
                             } 
                         } 
                     }
@@ -948,17 +969,22 @@
             const loader = document.getElementById('loader');
             loader.classList.add('active');
 
-            // Set report box to a clean loading spinner state instantly with a rainbow shimmer bar
             const reportContent = document.getElementById('reportContent');
-            reportContent.innerHTML = `
-                <div style="padding: 0.5rem 0;">
-                    <div class="ai-loading-bar"></div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.8rem; font-family: 'Inter', sans-serif;">
-                        <span style="background: linear-gradient(90deg, #ff007f, #7f00ff, #00f0ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 600;">AI Analyst</span>
-                        <span>is formulating pre-trade report...</span>
+            const liveAI = document.getElementById('aiToggle').checked;
+            
+            if (liveAI) {
+                reportContent.innerHTML = `
+                    <div style="padding: 0.5rem 0;">
+                        <div class="analyst-spinner" style="font-weight: bold; color: var(--accent-primary);"></div>
                     </div>
-                </div>
-            `;
+                `;
+            } else {
+                reportContent.innerHTML = `
+                    <div style="padding: 0.5rem 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent-optimal);">
+                        <span>SYS_PROCESSOR: GENERATING LOCAL PRE-TRADE VALUATION REPORT...</span>
+                    </div>
+                `;
+            }
 
             // Read parameters directly from input fields
             const stepVolValue = parseFloat(stepVolInput.value);
@@ -1003,10 +1029,17 @@
                 loader.classList.remove('active');
 
                 // Trigger background fetch for the report
-                fetch('/api/report', {
+                const bypassAI = !document.getElementById('aiToggle').checked;
+                const reportPayload = {
+                    request: requestPayload,
+                    optimalResult: data.optimalResult,
+                    twapResult: data.twapResult,
+                    vwapResult: data.vwapResult
+                };
+                fetch(`/api/report?bypassAI=${bypassAI}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestPayload)
+                    body: JSON.stringify(reportPayload)
                 })
                 .then(async (repRes) => {
                     if (!repRes.ok) {
@@ -1019,11 +1052,11 @@
                     renderReport(reportMarkdown);
                 })
                 .catch((reportErr) => {
-                    reportContent.innerHTML = `<span style="color: #ef4444; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace;">AI Consultation failed: ${reportErr.message}</span>`;
+                    reportContent.innerHTML = `<span style="color: #ff3333; font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: bold;">SYS_ERROR: API TRANSACTION FAILED: ${reportErr.message}</span>`;
                 });
 
             } catch (err) {
-                alert("Simulate Request Failed: " + err.message);
+                alert("EXECUTION REFUSED: " + err.message);
                 loader.classList.remove('active');
             }
         });
@@ -1091,6 +1124,24 @@
         // On window load
         initializeCharts();
         
+        // Format eta on change
+        const etaInput = document.getElementById('eta');
+        etaInput.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val) || val < 0) val = 1e-5;
+            etaInput.value = val === 0 ? "0.0" : val.toExponential(2);
+            updateSuggestedRanges();
+        });
+
+        // Format gamma on change
+        const gammaInput = document.getElementById('gamma');
+        gammaInput.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val) || val < 0) val = 1e-6;
+            gammaInput.value = val === 0 ? "0.0" : val.toExponential(2);
+            updateSuggestedRanges();
+        });
+
         // Listeners for remaining inputs to trigger suggestions recalculation
         const otherInputs = ['totalShares', 'initialPrice', 'eta', 'gamma'];
         otherInputs.forEach(id => {
@@ -1292,12 +1343,149 @@
             });
 
             validateVolumeProfile();
+            saveInputState();
         }
 
         document.getElementById('randomiseProfileBtn').addEventListener('click', randomizeVolumeProfile);
 
-        updateVolumeProfileBins();
-        updateSuggestedRanges();
+        // Form state persistence
+        const formEl = document.getElementById('simForm');
+        formEl.addEventListener('input', saveInputState);
+        formEl.addEventListener('change', saveInputState);
+        document.getElementById('aiToggle').addEventListener('change', saveInputState);
+
+        function saveInputState() {
+            try {
+                localStorage.setItem('totalShares', document.getElementById('totalShares').value);
+                localStorage.setItem('initialPrice', document.getElementById('initialPrice').value);
+                localStorage.setItem('volInput', document.getElementById('volInput').value);
+                localStorage.setItem('lambdaInputText', document.getElementById('lambdaInputText').value);
+                localStorage.setItem('eta', document.getElementById('eta').value);
+                localStorage.setItem('gamma', document.getElementById('gamma').value);
+                localStorage.setItem('startTime', document.getElementById('startTime').value);
+                localStorage.setItem('endTime', document.getElementById('endTime').value);
+                localStorage.setItem('aiToggle', document.getElementById('aiToggle').checked ? 'true' : 'false');
+
+                const volumeInputs = document.querySelectorAll('.profile-segments input');
+                const volumeProfile = [];
+                volumeInputs.forEach(input => {
+                    volumeProfile.push(parseFloat(input.value) || 0);
+                });
+                localStorage.setItem('volumeProfile', JSON.stringify(volumeProfile));
+            } catch (e) {
+                console.warn("localStorage is disabled or not accessible:", e);
+            }
+        }
+
+        function loadInputState() {
+            let startTime, endTime;
+            try {
+                startTime = localStorage.getItem('startTime');
+                endTime = localStorage.getItem('endTime');
+            } catch (e) {
+                console.warn("localStorage is disabled or not accessible:", e);
+                updateVolumeProfileBins();
+                validateVolumeProfile();
+                updateSuggestedRanges();
+                return;
+            }
+
+            if (startTime) {
+                document.getElementById('startTime').value = startTime;
+            }
+            if (endTime) {
+                document.getElementById('endTime').value = endTime;
+            }
+
+            // Generate bins based on restored times first
+            updateVolumeProfileBins();
+
+            // Restore basic inputs
+            const fields = ['totalShares', 'initialPrice', 'volInput', 'eta', 'gamma'];
+            fields.forEach(id => {
+                try {
+                    const val = localStorage.getItem(id);
+                    if (val !== null) {
+                        document.getElementById(id).value = val;
+                    }
+                } catch (e) {}
+            });
+
+            // Restore lambda text directly
+            try {
+                const savedLambdaText = localStorage.getItem('lambdaInputText');
+                if (savedLambdaText !== null) {
+                    document.getElementById('lambdaInputText').value = savedLambdaText;
+                }
+            } catch (e) {}
+
+            // Restore volume profile segments
+            try {
+                const savedProfileStr = localStorage.getItem('volumeProfile');
+                if (savedProfileStr) {
+                    const savedProfile = JSON.parse(savedProfileStr);
+                    const volumeInputs = document.querySelectorAll('.profile-segments input');
+                    if (savedProfile.length === volumeInputs.length) {
+                        volumeInputs.forEach((input, idx) => {
+                            input.value = savedProfile[idx].toFixed(2);
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to parse saved volume profile", e);
+            }
+
+            // Restore AI toggle
+            try {
+                const savedToggle = localStorage.getItem('aiToggle');
+                if (savedToggle !== null) {
+                    document.getElementById('aiToggle').checked = (savedToggle === 'true');
+                }
+            } catch (e) {}
+
+            // Re-run validation and range calculations
+            validateVolumeProfile();
+            updateSuggestedRanges();
+        }
+
+        // Toggle Documentation Modal Panel
+        function toggleHelp() {
+            const modal = document.getElementById('helpModal');
+            const overlay = document.getElementById('helpOverlay');
+            if (modal.style.display === 'block') {
+                modal.style.display = 'none';
+                overlay.style.display = 'none';
+            } else {
+                modal.style.display = 'block';
+                overlay.style.display = 'block';
+            }
+        }
+
+        // Reset all simulation fields back to original values
+        function resetParameters() {
+            if (confirm("CONFIRM SYSTEM RESET: CLEAR ALL SAVED TERMINAL STATE?")) {
+                try {
+                    localStorage.clear();
+                } catch (e) {}
+                window.location.reload();
+            }
+        }
+
+        // Terminal Keyboard Hotkeys Listener
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'F1') {
+                e.preventDefault();
+                toggleHelp();
+            } else if (e.key === 'F2') {
+                e.preventDefault();
+                resetParameters();
+            } else if (e.key === 'F3') {
+                e.preventDefault();
+                randomizeVolumeProfile();
+            }
+        });
+
+        loadInputState();
     </script>
 </body>
 </html>

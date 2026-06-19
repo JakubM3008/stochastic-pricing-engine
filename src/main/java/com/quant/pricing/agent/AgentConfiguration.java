@@ -67,10 +67,9 @@ public class AgentConfiguration {
     }
 
     @Bean
-    public ExecutionAgent executionAgent(ChatLanguageModel chatLanguageModel, ExecutionTools executionTools) {
+    public ExecutionAgent executionAgent(ChatLanguageModel chatLanguageModel) {
         return AiServices.builder(ExecutionAgent.class)
                 .chatLanguageModel(chatLanguageModel)
-                .tools(executionTools)
                 .build();
     }
 }
