@@ -164,7 +164,7 @@
             letter-spacing: 0.05em;
         }
 
-        input[type="number"] {
+        input[type="number"], input[type="time"] {
             width: 100%;
             background: var(--input-bg);
             border: 1px solid var(--border-color);
@@ -176,7 +176,7 @@
             transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
-        input[type="number"]:focus {
+        input[type="number"]:focus, input[type="time"]:focus {
             outline: none;
             border-color: var(--accent-primary);
             box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.15);
@@ -549,6 +549,23 @@
                 </div>
 
                 <div class="form-group">
+                    <label>Liquidation Time Window</label>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.6rem; color: var(--text-muted); margin-bottom: 0.25rem;">Start Time</label>
+                            <input type="time" id="startTime" value="09:30" step="1800">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.6rem; color: var(--text-muted); margin-bottom: 0.25rem;">End Time</label>
+                            <input type="time" id="endTime" value="12:00" step="1800">
+                        </div>
+                    </div>
+                    <div id="timeWindowInfo" style="font-size: 0.65rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+                        Duration: 2.5 hours (5 bins of 30 min)
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label>Intraday Volume Profile (%)</label>
                     <div class="profile-segments">
                         <div class="segment-field">
@@ -884,18 +901,18 @@
             const stepVolValue = parseFloat(stepVolInput.value);
             const lambda = parseFloat(lambdaInputText.value);
 
-            // Read volume profile elements and convert to fractions
-            const p1 = parseFloat(document.getElementById('p1').value) / 100.0;
-            const p2 = parseFloat(document.getElementById('p2').value) / 100.0;
-            const p3 = parseFloat(document.getElementById('p3').value) / 100.0;
-            const p4 = parseFloat(document.getElementById('p4').value) / 100.0;
-            const p5 = parseFloat(document.getElementById('p5').value) / 100.0;
-            const volumeProfile = [p1, p2, p3, p4, p5];
+            // Read volume profile elements dynamically and convert to fractions
+            const volumeInputs = document.querySelectorAll('.profile-segments input');
+            const volumeProfile = [];
+            volumeInputs.forEach(input => {
+                volumeProfile.push((parseFloat(input.value) || 0) / 100.0);
+            });
+            const numSteps = volumeProfile.length;
 
             const requestPayload = {
                 initialPrice: parseFloat(document.getElementById('initialPrice').value),
                 totalShares: parseFloat(document.getElementById('totalShares').value),
-                numSteps: 5,
+                numSteps: numSteps,
                 stepVolatility: stepVolValue,
                 eta: parseFloat(document.getElementById('eta').value),
                 gamma: parseFloat(document.getElementById('gamma').value),
@@ -940,7 +957,14 @@
             document.getElementById('vwapSD').textContent = formatCurrency(data.vwapResult.shortfallStandardDeviation);
             document.getElementById('vwapVar').textContent = formatCurrency(data.vwapResult.shortfallVariance);
 
-            // Update Trajectory Chart
+            // Update Trajectory Chart and its labels
+            const numSteps = data.optimalTrajectory.length - 1;
+            const newLabels = ['Start'];
+            for (let i = 1; i <= numSteps; i++) {
+                newLabels.push(`Step ${i}`);
+            }
+            trajectoryChart.data.labels = newLabels;
+
             trajectoryChart.data.datasets[0].data = data.optimalTrajectory;
             trajectoryChart.data.datasets[1].data = data.twapTrajectory;
             trajectoryChart.data.datasets[2].data = data.vwapTrajectory;
@@ -1034,6 +1058,84 @@
                 `Suggested: ${gamMin.toExponential(2)} – ${gamMax.toExponential(2)}`;
         }
 
+        // Listeners for time window changes
+        document.getElementById('startTime').addEventListener('change', updateVolumeProfileBins);
+        document.getElementById('endTime').addEventListener('change', updateVolumeProfileBins);
+
+        function parseTimeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        function generateUShapedProfile(n) {
+            if (n <= 0) return [];
+            const profile = [];
+            const half = (n - 1) / 2;
+            let sum = 0;
+            for (let i = 0; i < n; i++) {
+                const dist = i - half;
+                const val = Math.pow(dist, 2) + (n * n / 10);
+                profile.push(val);
+                sum += val;
+            }
+            const rounded = profile.map(v => Math.round((v / sum) * 100));
+            const roundedSum = rounded.reduce((a, b) => a + b, 0);
+            if (roundedSum !== 100 && rounded.length > 0) {
+                rounded[rounded.length - 1] += (100 - roundedSum);
+            }
+            return rounded;
+        }
+
+        function updateVolumeProfileBins() {
+            const startStr = document.getElementById('startTime').value;
+            const endStr = document.getElementById('endTime').value;
+
+            let startMin = parseTimeToMinutes(startStr);
+            let endMin = parseTimeToMinutes(endStr);
+
+            if (endMin <= startMin) {
+                endMin = startMin + 30;
+                const hours = Math.floor(endMin / 60).toString().padStart(2, '0');
+                const minutes = (endMin % 60).toString().padStart(2, '0');
+                document.getElementById('endTime').value = `${hours % 24}:${minutes}`;
+            }
+
+            const diffMin = endMin - startMin;
+            const numBins = Math.floor(diffMin / 30);
+
+            const segmentsContainer = document.querySelector('.profile-segments');
+            segmentsContainer.innerHTML = '';
+
+            const defaultProfile = generateUShapedProfile(numBins);
+
+            for (let i = 1; i <= numBins; i++) {
+                const segmentField = document.createElement('div');
+                segmentField.className = 'segment-field';
+                segmentField.innerHTML = `
+                    <span class="segment-label">S${i}</span>
+                    <input type="number" id="p${i}" value="${defaultProfile[i-1]}" min="0" max="100">
+                `;
+                segmentsContainer.appendChild(segmentField);
+            }
+
+            const hoursCount = (diffMin / 60).toFixed(1);
+            document.getElementById('timeWindowInfo').textContent = 
+                `Duration: ${hoursCount} hours (${numBins} bins of 30 min)`;
+
+            const newLabels = ['Start'];
+            for (let i = 1; i <= numBins; i++) {
+                newLabels.push(`Step ${i}`);
+            }
+            if (trajectoryChart) {
+                trajectoryChart.data.labels = newLabels;
+                trajectoryChart.data.datasets[0].data = [];
+                trajectoryChart.data.datasets[1].data = [];
+                trajectoryChart.data.datasets[2].data = [];
+                trajectoryChart.update();
+            }
+        }
+
+        updateVolumeProfileBins();
         updateSuggestedRanges();
     </script>
 </body>
