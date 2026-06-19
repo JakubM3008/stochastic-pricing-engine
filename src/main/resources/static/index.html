@@ -336,6 +336,26 @@
             transform: translateY(0);
         }
 
+        .sec-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .sec-btn:hover {
+            border-color: var(--border-color-hover);
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
         .btn:disabled {
             opacity: 0.4;
             cursor: not-allowed;
@@ -577,27 +597,30 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Intraday Volume Profile (%)</label>
+                    <div class="panel-header" style="margin-bottom: 0.5rem;">
+                        <label style="margin-bottom: 0;">Intraday Volume Profile (%)</label>
+                        <button type="button" id="randomiseProfileBtn" class="sec-btn">Randomise</button>
+                    </div>
                     <div class="profile-segments">
                         <div class="segment-field">
                             <span class="segment-label">S1</span>
-                            <input type="number" id="p1" value="35" min="0" max="100">
+                            <input type="number" id="p1" value="35.00" min="0" max="100" step="0.01">
                         </div>
                         <div class="segment-field">
                             <span class="segment-label">S2</span>
-                            <input type="number" id="p2" value="15" min="0" max="100">
+                            <input type="number" id="p2" value="15.00" min="0" max="100" step="0.01">
                         </div>
                         <div class="segment-field">
                             <span class="segment-label">S3</span>
-                            <input type="number" id="p3" value="10" min="0" max="100">
+                            <input type="number" id="p3" value="10.00" min="0" max="100" step="0.01">
                         </div>
                         <div class="segment-field">
                             <span class="segment-label">S4</span>
-                            <input type="number" id="p4" value="15" min="0" max="100">
+                            <input type="number" id="p4" value="15.00" min="0" max="100" step="0.01">
                         </div>
                         <div class="segment-field">
                             <span class="segment-label">S5</span>
-                            <input type="number" id="p5" value="25" min="0" max="100">
+                            <input type="number" id="p5" value="25.00" min="0" max="100" step="0.01">
                         </div>
                     </div>
                     <div id="profileWarning" style="color: #ef4444; font-size: 0.65rem; margin-top: 0.35rem; font-family: 'JetBrains Mono', monospace; display: none;"></div>
@@ -1125,7 +1148,7 @@
                 segmentField.className = 'segment-field';
                 segmentField.innerHTML = `
                     <span class="segment-label">S${i}</span>
-                    <input type="number" id="p${i}" value="${defaultProfile[i-1]}" min="0" max="100">
+                    <input type="number" id="p${i}" value="${defaultProfile[i-1].toFixed(2)}" min="0" max="100" step="0.01">
                 `;
                 segmentsContainer.appendChild(segmentField);
             }
@@ -1179,9 +1202,9 @@
             });
 
             if (allPopulated) {
-                if (Math.round(sum) !== 100) {
+                if (Math.abs(sum - 100.0) > 0.01) {
                     container.classList.add('profile-error');
-                    warning.textContent = `Total profile must sum to exactly 100%. Current: ${Math.round(sum)}%`;
+                    warning.textContent = `Total profile must sum to exactly 100%. Current: ${sum.toFixed(2)}%`;
                     warning.style.display = 'block';
                     btn.disabled = true;
                 } else {
@@ -1195,6 +1218,35 @@
                 btn.disabled = false;
             }
         }
+
+        function randomizeVolumeProfile() {
+            const inputs = document.querySelectorAll('.profile-segments input');
+            const n = inputs.length;
+            if (n <= 0) return;
+
+            const raw = [];
+            let sum = 0;
+            for (let i = 0; i < n; i++) {
+                const val = Math.random() + 0.1;
+                raw.push(val);
+                sum += val;
+            }
+
+            const normalized = raw.map(v => parseFloat(((v / sum) * 100).toFixed(2)));
+            const currentSum = normalized.reduce((a, b) => a + b, 0);
+            const drift = parseFloat((100.0 - currentSum).toFixed(2));
+            if (drift !== 0 && normalized.length > 0) {
+                normalized[normalized.length - 1] = parseFloat((normalized[normalized.length - 1] + drift).toFixed(2));
+            }
+
+            inputs.forEach((input, idx) => {
+                input.value = normalized[idx].toFixed(2);
+            });
+
+            validateVolumeProfile();
+        }
+
+        document.getElementById('randomiseProfileBtn').addEventListener('click', randomizeVolumeProfile);
 
         updateVolumeProfileBins();
         updateSuggestedRanges();
