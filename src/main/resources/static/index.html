@@ -3,24 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stochastic execution simulator</title>
-    <!-- Google Fonts: Outfit -->
+    <title>Stochastic Execution Simulator</title>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-color: #0b0b10;
-            --panel-bg: rgba(20, 20, 30, 0.6);
+            --bg-color: #09090b;
+            --panel-bg: rgba(18, 18, 22, 0.7);
             --border-color: rgba(255, 255, 255, 0.08);
-            --accent-purple: #8b5cf6;
-            --accent-purple-glow: rgba(139, 92, 246, 0.35);
-            --accent-blue: #38bdf8;
-            --accent-amber: #f59e0b;
-            --text-main: #f3f4f6;
-            --text-muted: #9ca3af;
+            --border-color-hover: rgba(255, 255, 255, 0.15);
+            --accent-primary: #818cf8; /* Slate Indigo */
+            --accent-optimal: #818cf8;
+            --accent-twap: #64748b;
+            --accent-vwap: #fbbf24;
+            --text-main: #f4f4f5;
+            --text-muted: #71717a;
+            --text-muted-dark: #52525b;
+            --input-bg: #121215;
         }
 
         * {
@@ -30,115 +33,153 @@
         }
 
         body {
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(ellipse at top, rgba(129, 140, 248, 0.04), transparent 60%),
+                radial-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 0);
+            background-size: 100% 100%, 20px 20px;
             color: var(--text-main);
             min-height: 100vh;
             overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(56, 189, 248, 0.05) 0%, transparent 40%);
+            -webkit-font-smoothing: antialiased;
         }
 
         /* Layout */
         .container {
-            max-width: 1400px;
+            max-width: 1320px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 3rem 2rem;
         }
 
         header {
-            margin-bottom: 2rem;
+            margin-bottom: 3rem;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 1.5rem;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-end;
         }
 
         h1 {
-            font-size: 2.2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #fff 30%, var(--accent-purple) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px;
+            font-size: 1.6rem;
+            font-weight: 500;
+            color: #ffffff;
+            letter-spacing: -0.025em;
         }
 
         .subtitle {
             color: var(--text-muted);
-            font-size: 0.95rem;
-            margin-top: 0.25rem;
+            font-size: 0.85rem;
+            margin-top: 0.35rem;
+            font-weight: 400;
         }
 
-        .badge {
-            background: rgba(139, 92, 246, 0.15);
-            border: 1px solid var(--accent-purple);
+        /* SIMD status indicator */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(16, 185, 129, 0.04);
+            border: 1px solid rgba(16, 185, 129, 0.12);
             padding: 0.4rem 0.8rem;
             border-radius: 9999px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #c084fc;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #10b981;
+            letter-spacing: 0.02em;
+        }
+        
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+            animation: pulse 2.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
         }
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: 350px 1fr;
+            grid-template-columns: 320px 1fr;
             gap: 2rem;
             align-items: start;
         }
 
-        /* Glassmorphism Panels */
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Minimalist Panels */
         .panel {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
+            border-radius: 8px;
             padding: 1.5rem;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+            transition: border-color 0.2s ease;
+        }
+
+        .panel:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
         }
 
         .panel-title {
-            font-size: 1.2rem;
+            font-size: 0.75rem;
             font-weight: 600;
-            margin-bottom: 1.25rem;
-            border-left: 3px solid var(--accent-purple);
-            padding-left: 0.75rem;
-            letter-spacing: -0.2px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
         }
 
         /* Form elements */
         .form-group {
-            margin-bottom: 1.2rem;
+            margin-bottom: 1.25rem;
         }
 
         label {
             display: block;
-            font-size: 0.85rem;
-            font-weight: 500;
+            font-size: 0.7rem;
+            font-weight: 600;
             color: var(--text-muted);
             margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        input[type="number"], input[type="range"] {
+        input[type="number"] {
             width: 100%;
-            background: rgba(10, 10, 15, 0.8);
+            background: var(--input-bg);
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 0.7rem;
-            border-radius: 8px;
+            padding: 0.6rem 0.75rem;
+            border-radius: 6px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
-            transition: all 0.2s;
+            font-size: 0.85rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
         input[type="number"]:focus {
             outline: none;
-            border-color: var(--accent-purple);
-            box-shadow: 0 0 0 3px var(--accent-purple-glow);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.15);
         }
 
         /* Range sliders */
@@ -146,57 +187,127 @@
             display: flex;
             align-items: center;
             gap: 1rem;
-        }
-        .range-container span {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            min-width: 50px;
-            text-align: right;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
         }
 
-        /* Custom inputs for Volume profile */
-        .profile-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            flex: 1;
+            height: 3px;
+            border-radius: 2px;
+            background: #27272a;
+            outline: none;
+            cursor: pointer;
         }
-        .profile-step {
-            text-align: center;
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            border: none;
+            transition: transform 0.1s ease, background-color 0.1s ease;
         }
-        .profile-step input {
-            width: 100%;
-            text-align: center;
-            padding: 0.5rem 0.2rem;
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+            background: #a5b4fc;
+        }
+
+        .range-container span {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.8rem;
+            min-width: 55px;
+            text-align: right;
+            color: var(--text-main);
+        }
+
+        /* Custom inputs for Volume profile segments */
+        .profile-segments {
+            display: flex;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+            background: var(--input-bg);
+            transition: border-color 0.15s ease;
+        }
+
+        .profile-segments:focus-within {
+            border-color: var(--accent-primary);
+        }
+
+        .segment-field {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-right: 1px solid var(--border-color);
+            padding: 0.4rem 0.2rem;
+        }
+
+        .segment-field:last-child {
+            border-right: none;
+        }
+
+        .segment-label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.2rem;
+        }
+
+        .segment-field input {
+            width: 100%;
+            background: transparent !important;
+            border: none !important;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-main);
+            padding: 0.1rem 0;
+            outline: none;
+            -moz-appearance: textfield;
+        }
+
+        .segment-field input::-webkit-outer-spin-button,
+        .segment-field input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
 
         .btn {
             display: block;
             width: 100%;
-            background: linear-gradient(135deg, var(--accent-purple) 0%, #6366f1 100%);
-            color: white;
+            background: #f4f4f5;
+            color: #09090b;
             border: none;
-            padding: 0.9rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.85rem;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.25);
+            transition: background 0.15s ease, transform 0.1s ease;
+            text-align: center;
+            margin-top: 1.5rem;
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+            background: #ffffff;
+            transform: translateY(-1px);
         }
 
         .btn:active {
+            background: #e4e4e7;
             transform: translateY(0);
         }
 
-        /* Main Content Panel layout */
+        /* Main Content Layout */
         .main-content {
             display: flex;
             flex-direction: column;
@@ -209,89 +320,125 @@
             gap: 2rem;
         }
 
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .chart-box {
             position: relative;
-            height: 350px;
+            height: 320px;
             width: 100%;
-        }
-
-        /* AI Analyst Report container */
-        .report-box {
-            background: rgba(15, 15, 25, 0.8);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
-            font-family: 'Outfit', sans-serif;
-            line-height: 1.6;
-        }
-
-        .report-box h3 {
-            font-size: 1.15rem;
-            margin-bottom: 0.75rem;
-            color: var(--accent-purple);
-        }
-
-        .report-box ul {
-            list-style-type: none;
-        }
-
-        .report-box li {
-            position: relative;
-            padding-left: 1.5rem;
-            margin-bottom: 0.5rem;
-            font-size: 0.95rem;
-        }
-
-        .report-box li::before {
-            content: "•";
-            color: var(--accent-purple);
-            font-weight: bold;
-            font-size: 1.2rem;
-            position: absolute;
-            left: 0;
-            top: -2px;
+            margin-top: 1rem;
         }
 
         /* Tables */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 1rem;
-            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
         }
 
         th, td {
             text-align: left;
-            padding: 0.75rem;
+            padding: 0.8rem 1rem;
             border-bottom: 1px solid var(--border-color);
         }
 
         th {
             color: var(--text-muted);
             font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
         }
 
         td {
             font-family: 'JetBrains Mono', monospace;
+            color: var(--text-main);
         }
 
-        .optimal-cell { color: var(--accent-purple); font-weight: bold;}
-        .twap-cell { color: var(--accent-blue); font-weight: bold;}
-        .vwap-cell { color: var(--accent-amber); font-weight: bold;}
+        .text-right {
+            text-align: right;
+        }
 
-        /* Spinners */
+        tr:hover td {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .optimal-cell { color: var(--accent-optimal); font-weight: 600; }
+        .twap-cell { color: var(--accent-twap); font-weight: 500; }
+        .vwap-cell { color: var(--accent-vwap); font-weight: 500; }
+
+        /* AI Analyst Report container */
+        .report-box {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1.25rem 1.5rem;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.65;
+            color: #d4d4d8;
+        }
+
+        .report-box h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .report-box h3:first-child {
+            margin-top: 0;
+        }
+
+        .report-box ul {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 1rem;
+        }
+
+        .report-box li {
+            position: relative;
+            padding-left: 1.25rem;
+            margin-bottom: 0.4rem;
+            font-size: 0.85rem;
+        }
+
+        .report-box li::before {
+            content: "—";
+            color: var(--text-muted);
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .report-box strong {
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        /* Loading / Blur Spinner */
         .loading {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(11, 11, 16, 0.85);
+            background: rgba(9, 9, 11, 0.7);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             display: flex;
             justify-content: center;
             align-items: center;
-            border-radius: 16px;
+            border-radius: 8px;
             z-index: 10;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s;
+            transition: opacity 0.2s ease;
         }
 
         .loading.active {
@@ -300,12 +447,12 @@
         }
 
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid var(--accent-purple);
+            width: 32px;
+            height: 32px;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-top: 2px solid var(--accent-primary);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 0.7s linear infinite;
         }
 
         @keyframes spin {
@@ -319,16 +466,21 @@
     <div class="container">
         <header>
             <div>
-                <h1>Stochastic execution simulator</h1>
+                <h1>Stochastic Execution Simulator</h1>
                 <div class="subtitle">Almgren-Chriss Optimal Liquidation Strategy Benchmark</div>
             </div>
-            <div class="badge">Hardware Vector (SIMD) Enabled</div>
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span>SIMD Core Active</span>
+            </div>
         </header>
 
         <div class="dashboard-grid">
             <!-- Left panel: Control parameters -->
             <form id="simForm" class="panel">
-                <div class="panel-title">Trading parameters</div>
+                <div class="panel-header">
+                    <span class="panel-title">Simulation parameters</span>
+                </div>
 
                 <div class="form-group">
                     <label for="totalShares">Total Shares to Liquidate</label>
@@ -336,7 +488,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="initialPrice">Initial Asset Price (USD)</label>
+                    <label for="initialPrice">Initial Price (USD)</label>
                     <input type="number" id="initialPrice" value="100.00" min="0.01" step="0.01">
                 </div>
 
@@ -367,26 +519,26 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Historical Intraday Volume Profile (%)</label>
-                    <div class="profile-grid">
-                        <div class="profile-step">
-                            <label>S1</label>
+                    <label>Intraday Volume Profile (%)</label>
+                    <div class="profile-segments">
+                        <div class="segment-field">
+                            <span class="segment-label">S1</span>
                             <input type="number" id="p1" value="35" min="0" max="100">
                         </div>
-                        <div class="profile-step">
-                            <label>S2</label>
+                        <div class="segment-field">
+                            <span class="segment-label">S2</span>
                             <input type="number" id="p2" value="15" min="0" max="100">
                         </div>
-                        <div class="profile-step">
-                            <label>S3</label>
+                        <div class="segment-field">
+                            <span class="segment-label">S3</span>
                             <input type="number" id="p3" value="10" min="0" max="100">
                         </div>
-                        <div class="profile-step">
-                            <label>S4</label>
+                        <div class="segment-field">
+                            <span class="segment-label">S4</span>
                             <input type="number" id="p4" value="15" min="0" max="100">
                         </div>
-                        <div class="profile-step">
-                            <label>S5</label>
+                        <div class="segment-field">
+                            <span class="segment-label">S5</span>
                             <input type="number" id="p5" value="25" min="0" max="100">
                         </div>
                     </div>
@@ -405,7 +557,7 @@
                     <div class="charts-container">
                         <!-- Chart 1: Holding Trajectories -->
                         <div>
-                            <div class="panel-title">Holding Schedules (Decay Curves)</div>
+                            <span class="panel-title">Holding Schedules (Decay Curves)</span>
                             <div class="chart-box">
                                 <canvas id="trajectoryChart"></canvas>
                             </div>
@@ -413,7 +565,7 @@
 
                         <!-- Chart 2: Cost-Risk comparison -->
                         <div>
-                            <div class="panel-title">Execution cost (ES) vs Volatility risk (SD)</div>
+                            <span class="panel-title">Shortfall Cost (ES) vs Volatility Risk (SD)</span>
                             <div class="chart-box">
                                 <canvas id="varianceChart"></canvas>
                             </div>
@@ -423,34 +575,36 @@
 
                 <!-- Metrics breakdown table -->
                 <div class="panel">
-                    <div class="panel-title">Backtesting Performance Metrics (10,000 paths)</div>
+                    <div class="panel-header">
+                        <span class="panel-title">Monte Carlo Backtesting Performance (10,000 paths)</span>
+                    </div>
                     <table>
                         <thead>
                             <tr>
                                 <th>Strategy</th>
-                                <th>Expected Shortfall (Cost)</th>
-                                <th>Risk Standard Deviation</th>
-                                <th>Liquidation Volatility Variance</th>
+                                <th class="text-right">Expected Shortfall (Cost)</th>
+                                <th class="text-right">Risk Standard Deviation</th>
+                                <th class="text-right">Liquidation Variance</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td class="optimal-cell">Almgren-Chriss Optimal</td>
-                                <td id="optES">-</td>
-                                <td id="optSD">-</td>
-                                <td id="optVar">-</td>
+                                <td id="optES" class="text-right">—</td>
+                                <td id="optSD" class="text-right">—</td>
+                                <td id="optVar" class="text-right">—</td>
                             </tr>
                             <tr>
                                 <td class="twap-cell">Linear TWAP</td>
-                                <td id="twapES">-</td>
-                                <td id="twapSD">-</td>
-                                <td id="twapVar">-</td>
+                                <td id="twapES" class="text-right">—</td>
+                                <td id="twapSD" class="text-right">—</td>
+                                <td id="twapVar" class="text-right">—</td>
                             </tr>
                             <tr>
                                 <td class="vwap-cell">Volume-Weighted VWAP</td>
-                                <td id="vwapES">-</td>
-                                <td id="vwapSD">-</td>
-                                <td id="vwapVar">-</td>
+                                <td id="vwapES" class="text-right">—</td>
+                                <td id="vwapSD" class="text-right">—</td>
+                                <td id="vwapVar" class="text-right">—</td>
                             </tr>
                         </tbody>
                     </table>
@@ -458,9 +612,11 @@
 
                 <!-- AI analyst card -->
                 <div class="panel">
-                    <div class="panel-title">AI Quant Analyst Pre-Trade Report</div>
+                    <div class="panel-header">
+                        <span class="panel-title">AI Quant Pre-Trade Analysis Report</span>
+                    </div>
                     <div class="report-box" id="reportContent">
-                        Select parameter boundaries and run the execution benchmark to trigger the report.
+                        Configure simulation boundaries and run the execution benchmark to trigger the report.
                     </div>
                 </div>
             </div>
@@ -487,26 +643,106 @@
         let trajectoryChart = null;
         let varianceChart = null;
 
+        // Custom styling defaults for Chart.js
+        Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+        Chart.defaults.color = "#71717a";
+        Chart.defaults.plugins.tooltip.backgroundColor = "#18181b";
+        Chart.defaults.plugins.tooltip.borderColor = "rgba(255,255,255,0.08)";
+        Chart.defaults.plugins.tooltip.borderWidth = 1;
+        Chart.defaults.plugins.tooltip.titleColor = "#ffffff";
+        Chart.defaults.plugins.tooltip.bodyColor = "#d4d4d8";
+        Chart.defaults.plugins.tooltip.padding = 10;
+        Chart.defaults.plugins.tooltip.cornerRadius = 6;
+
         function initializeCharts() {
             const ctx1 = document.getElementById('trajectoryChart').getContext('2d');
+            
+            // Create nice subtle gradients for the lines
+            const gradOptimal = ctx1.createLinearGradient(0, 0, 0, 300);
+            gradOptimal.addColorStop(0, 'rgba(129, 140, 248, 0.12)');
+            gradOptimal.addColorStop(1, 'rgba(129, 140, 248, 0.0)');
+
+            const gradVwap = ctx1.createLinearGradient(0, 0, 0, 300);
+            gradVwap.addColorStop(0, 'rgba(251, 191, 36, 0.08)');
+            gradVwap.addColorStop(1, 'rgba(251, 191, 36, 0.0)');
+
             trajectoryChart = new Chart(ctx1, {
                 type: 'line',
                 data: {
                     labels: ['Start', 'Step 1', 'Step 2', 'Step 3', 'Step 4', 'Step 5'],
                     datasets: [
-                        { label: 'Optimal AC', borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', data: [], borderDash: [2, 2] },
-                        { label: 'TWAP', borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', data: [] },
-                        { label: 'VWAP', borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', data: [] }
+                        { 
+                            label: 'Optimal AC', 
+                            borderColor: '#818cf8', 
+                            backgroundColor: gradOptimal, 
+                            data: [], 
+                            fill: true,
+                            borderWidth: 2,
+                            pointBackgroundColor: '#818cf8',
+                            pointHoverRadius: 6,
+                            tension: 0.2
+                        },
+                        { 
+                            label: 'TWAP', 
+                            borderColor: '#64748b', 
+                            backgroundColor: 'transparent', 
+                            data: [], 
+                            fill: false,
+                            borderWidth: 1.5,
+                            borderDash: [4, 4],
+                            pointBackgroundColor: '#64748b',
+                            pointHoverRadius: 5,
+                            tension: 0.1
+                        },
+                        { 
+                            label: 'VWAP', 
+                            borderColor: '#fbbf24', 
+                            backgroundColor: gradVwap, 
+                            data: [], 
+                            fill: true,
+                            borderWidth: 1.5,
+                            pointBackgroundColor: '#fbbf24',
+                            pointHoverRadius: 5,
+                            tension: 0.2
+                        }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                        x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                        y: { 
+                            ticks: { 
+                                color: '#71717a',
+                                font: { family: "'JetBrains Mono', monospace", size: 9 },
+                                callback: function(value) {
+                                    if (value >= 1e6) return (value / 1e6).toFixed(1) + 'M';
+                                    if (value >= 1e3) return (value / 1e3).toFixed(0) + 'k';
+                                    return value;
+                                }
+                            }, 
+                            grid: { color: 'rgba(255,255,255,0.03)' } 
+                        },
+                        x: { 
+                            ticks: { 
+                                color: '#71717a',
+                                font: { size: 10 }
+                            }, 
+                            grid: { display: false } 
+                        }
                     },
-                    plugins: { legend: { labels: { color: '#f3f4f6' } } }
+                    plugins: { 
+                        legend: { 
+                            position: 'top',
+                            align: 'end',
+                            labels: { 
+                                color: '#d4d4d8',
+                                boxWidth: 12,
+                                boxHeight: 3,
+                                font: { size: 11, weight: 500 }
+                            } 
+                        } 
+                    }
                 }
             });
 
@@ -514,21 +750,70 @@
             varianceChart = new Chart(ctx2, {
                 type: 'bar',
                 data: {
-                    labels: ['Expected Shortfall (Cost)', 'Risk Standard Deviation'],
+                    labels: ['Expected Shortfall', 'Risk Std Dev'],
                     datasets: [
-                        { label: 'Optimal AC', backgroundColor: '#8b5cf6', data: [] },
-                        { label: 'TWAP', backgroundColor: '#38bdf8', data: [] },
-                        { label: 'VWAP', backgroundColor: '#f59e0b', data: [] }
+                        { 
+                            label: 'Optimal AC', 
+                            backgroundColor: '#818cf8', 
+                            hoverBackgroundColor: '#a5b4fc',
+                            data: [],
+                            borderRadius: 4,
+                            borderSkipped: false
+                        },
+                        { 
+                            label: 'TWAP', 
+                            backgroundColor: '#64748b', 
+                            hoverBackgroundColor: '#94a3b8',
+                            data: [],
+                            borderRadius: 4,
+                            borderSkipped: false
+                        },
+                        { 
+                            label: 'VWAP', 
+                            backgroundColor: '#fbbf24', 
+                            hoverBackgroundColor: '#fde047',
+                            data: [],
+                            borderRadius: 4,
+                            borderSkipped: false
+                        }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                        x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                        y: { 
+                            ticks: { 
+                                color: '#71717a',
+                                font: { family: "'JetBrains Mono', monospace", size: 9 },
+                                callback: function(value) {
+                                    if (value >= 1e6) return '$' + (value / 1e6).toFixed(1) + 'M';
+                                    if (value >= 1e3) return '$' + (value / 1e3).toFixed(0) + 'k';
+                                    return '$' + value;
+                                }
+                            }, 
+                            grid: { color: 'rgba(255,255,255,0.03)' } 
+                        },
+                        x: { 
+                            ticks: { 
+                                color: '#71717a',
+                                font: { size: 10 }
+                            }, 
+                            grid: { display: false } 
+                        }
                     },
-                    plugins: { legend: { labels: { color: '#f3f4f6' } } }
+                    plugins: { 
+                        legend: { 
+                            position: 'top',
+                            align: 'end',
+                            labels: { 
+                                color: '#d4d4d8',
+                                boxWidth: 10,
+                                boxHeight: 10,
+                                font: { size: 11, weight: 500 }
+                            } 
+                        } 
+                    }
                 }
             });
         }
@@ -621,6 +906,11 @@
 
         function renderReport(mdText) {
             const container = document.getElementById('reportContent');
+            if (!mdText) {
+                container.innerHTML = "No report available.";
+                return;
+            }
+            
             // Basic markdown string parser for formatting report cards
             let html = mdText
                 .replace(/^### (.*$)/gim, '<h3>$1</h3>')
