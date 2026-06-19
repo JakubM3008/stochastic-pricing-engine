@@ -40,4 +40,32 @@ class ExecutionSimulatorTest {
         assertTrue(optimalResult.shortfallVariance() < twapResult.shortfallVariance(), 
                 "Optimal trajectory with lambda > 0 must reduce shortfall variance compared to TWAP");
     }
+
+    @Test
+    void shouldComputeExactDeterministicShortfallWhenVolatilityIsZero() {
+        double initialPrice = 100.0;
+        double totalShares = 10000.0;
+        int numSteps = 1;
+        double volatility = 0.0; // Zero volatility
+        double eta = 1e-4;
+        double gamma = 1e-5;
+        double tau = 1.0;
+        int numPaths = 100;
+
+        double[] trajectory = {10000.0, 0.0};
+        ExecutionSimulator simulator = new ExecutionSimulator();
+
+        ExecutionResult result = simulator.simulate(initialPrice, trajectory, numSteps, volatility, eta, gamma, tau, numPaths);
+
+        assertNotNull(result);
+        // Expected Shortfall: (totalShares * initialPrice) - cashRealized
+        // cashRealized = totalShares * (initialPrice - gamma * totalShares - eta * (totalShares / tau))
+        // = 10000 * (100.0 - 1e-5 * 10000 - 1e-4 * 10000)
+        // = 10000 * (100.0 - 0.1 - 1.0)
+        // = 10000 * 98.9 = 989000.
+        // Shortfall = 1000000 - 989000 = 11000.0.
+        assertEquals(11000.0, result.expectedShortfall(), 1e-6);
+        assertEquals(0.0, result.shortfallVariance(), 1e-9);
+        assertEquals(0.0, result.shortfallStandardDeviation(), 1e-9);
+    }
 }

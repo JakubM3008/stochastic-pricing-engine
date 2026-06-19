@@ -62,4 +62,22 @@ class AlmgrenChrissOptimizerTest {
         assertTrue(trajectory[4] < 20000.0);
         assertEquals(0.0, trajectory[numSteps], 1e-9);
     }
+
+    @Test
+    void shouldGenerateLinearTrajectoryWhenNegativeRiskAversion() {
+        AlmgrenChrissOptimizer optimizer = new AlmgrenChrissOptimizer();
+        double[] trajectory = optimizer.optimize(10000.0, 5, 0.30, -0.01, 1e-5, 1e-6, 1.0);
+        assertEquals(10000.0, trajectory[0], 1e-9);
+        assertEquals(8000.0, trajectory[1], 1e-9);
+        assertEquals(0.0, trajectory[5], 1e-9);
+    }
+
+    @Test
+    void shouldHandleSingleStepTrajectory() {
+        AlmgrenChrissOptimizer optimizer = new AlmgrenChrissOptimizer();
+        double[] trajectory = optimizer.optimize(10000.0, 1, 0.30, 0.01, 1e-5, 1e-6, 1.0);
+        assertEquals(2, trajectory.length);
+        assertEquals(10000.0, trajectory[0], 1e-9);
+        assertEquals(0.0, trajectory[1], 1e-9);
+    }
 }
