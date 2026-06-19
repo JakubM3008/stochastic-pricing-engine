@@ -29,7 +29,7 @@ dependencies {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	options.compilerArgs += ["--add-modules", "jdk.incubator.vector"]
+	options.compilerArgs += ["--add-modules", "jdk.incubator.vector", "-parameters"]
 }
 
 tasks.named('test') {
