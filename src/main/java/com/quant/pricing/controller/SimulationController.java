@@ -115,11 +115,11 @@ public class SimulationController {
         );
 
         return String.format(
-            "### Pre-Trade Cost & Risk Analysis (Local Mode)\n\n" +
-            "* **Optimal Execution** minimizes volatility exposure (Risk Std Dev: %.2f USD) by front-loading liquidation, but incurs a higher expected transaction cost (Expected Shortfall: %.2f USD).\n" +
-            "* **TWAP** yields the lowest expected transaction cost (Expected Shortfall: %.2f USD) but exposes the position to high market risk (Risk Std Dev: %.2f USD).\n" +
-            "* **VWAP** provides a balanced compromise matching historical volume curves, resulting in Expected Shortfall of %.2f USD and Risk Std Dev of %.2f USD.\n\n" +
-            "*Note: Export your `GEMINI_API_KEY` to unlock full Gemini reasoning reports.*",
+            "### Pre-Trade Cost & Risk Summary (Local Mode)\n\n" +
+            "* **Optimal AC**: Minimizes risk (SD: %.2f USD) by front-loading sales, but costs more (Shortfall: %.2f USD).\n" +
+            "* **TWAP**: Minimizes cost (Shortfall: %.2f USD) but exposes the trade to maximum market risk (SD: %.2f USD).\n" +
+            "* **VWAP**: Balanced curve matching intraday volume (Shortfall: %.2f USD, SD: %.2f USD).\n\n" +
+            "*Note: Export your `GEMINI_API_KEY` to unlock live Gemini analysis.*",
             optimalRes.shortfallStandardDeviation(), optimalRes.expectedShortfall(),
             twapRes.expectedShortfall(), twapRes.shortfallStandardDeviation(),
             vwapRes.expectedShortfall(), vwapRes.shortfallStandardDeviation()
