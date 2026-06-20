@@ -213,15 +213,22 @@ public class PortfolioSimulationController {
         double corrUtility = correlatedRes.expectedShortfall() + lambda * Math.pow(correlatedRes.shortfallStandardDeviation(), 2);
         double uncorrUtility = uncorrelatedRes.expectedShortfall() + lambda * Math.pow(uncorrelatedRes.shortfallStandardDeviation(), 2);
 
+        String benefitText;
+        if (benefit >= 0) {
+            benefitText = String.format("Inter-asset correlation leads to a risk standard deviation reduction of **%.2f USD** compared to treating liquidation risks independently.", benefit);
+        } else {
+            benefitText = String.format("Inter-asset correlation leads to a risk standard deviation increase of **%.2f USD** (diversification penalty) compared to treating liquidation risks independently.", Math.abs(benefit));
+        }
+
         return String.format(
             "### Portfolio Pre-Trade Risk Summary (Local Mode)\n\n" +
             "* **Correlated Portfolio (Basket)**: Expected Cost (Shortfall): %.2f USD. Risk Volatility (SD): %.2f USD. Risk-Adjusted Utility: %.2f USD.\n" +
             "* **Uncorrelated Portfolio (Independent Sum)**: Expected Cost (Shortfall): %.2f USD. Risk Volatility (SD): %.2f USD. Risk-Adjusted Utility: %.2f USD.\n" +
-            "* **Diversification Benefit**: Inter-asset correlation leads to a risk standard deviation reduction of **%.2f USD** compared to treating liquidation risks independently.\n\n" +
+            "* **Diversification Benefit**: %s\n\n" +
             "%s",
             correlatedRes.expectedShortfall(), correlatedRes.shortfallStandardDeviation(), corrUtility,
             uncorrelatedRes.expectedShortfall(), uncorrelatedRes.shortfallStandardDeviation(), uncorrUtility,
-            benefit,
+            benefitText,
             note
         );
     }

@@ -877,7 +877,15 @@
 
             // Display Diversification Benefit
             const badge = document.getElementById('benefitBadge');
-            badge.textContent = `DIVERSIFICATION BENEFIT (RISK SD REDUCTION): ${formatCurrency(data.diversificationBenefit)}`;
+            if (data.diversificationBenefit >= 0) {
+                badge.textContent = `DIVERSIFICATION BENEFIT (RISK SD REDUCTION): ${formatCurrency(data.diversificationBenefit)}`;
+                badge.style.borderColor = 'var(--accent-optimal)';
+                badge.style.color = 'var(--accent-optimal)';
+            } else {
+                badge.textContent = `DIVERSIFICATION PENALTY (RISK SD INCREASE): ${formatCurrency(Math.abs(data.diversificationBenefit))}`;
+                badge.style.borderColor = '#ff3333';
+                badge.style.color = '#ff3333';
+            }
             badge.style.display = 'block';
 
             // Update Decay Chart
