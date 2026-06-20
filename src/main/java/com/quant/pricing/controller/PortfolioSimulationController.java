@@ -34,13 +34,15 @@ public class PortfolioSimulationController {
 
     @PostMapping("/portfolio/simulate")
     public ResponseEntity<?> runPortfolioSimulation(@RequestBody PortfolioSimulationRequest request) {
+        long startTime = System.nanoTime();
         try {
             int m = request.initialPrices().length;
             int numSteps = request.numSteps();
             double tau = 1.0;
             int numPaths = 10000;
 
-            // 1. Calculate holding trajectories for each asset independently under Almgren-Chriss
+            
+            long optStart = System.nanoTime();
             double[][] trajectories = new double[m][numSteps + 1];
             for (int i = 0; i < m; i++) {
                 trajectories[i] = optimizer.optimize(
@@ -53,14 +55,16 @@ public class PortfolioSimulationController {
                         tau
                 );
             }
+            long optEnd = System.nanoTime();
+            long optimizationTimeNs = optEnd - optStart;
 
-            // 2. Perform Spectral Repair check on Correlation Matrix
+            
             double[][] originalCorr = request.correlationMatrix();
             double[][] repairedCorr = repairCorrelationMatrix(originalCorr, 1e-4);
             boolean correlationRepaired = (repairedCorr != null);
             double[][] finalCorr = correlationRepaired ? repairedCorr : originalCorr;
 
-            // 3. Build Covariance Matrices: Full Covariance (Correlated) vs Diagonal (Uncorrelated)
+            
             double[][] covariance = new double[m][m];
             double[][] diagonalCovariance = new double[m][m];
 
@@ -76,7 +80,8 @@ public class PortfolioSimulationController {
                 }
             }
 
-            // 4. Run Monte Carlo Simulations
+            
+            long simStart = System.nanoTime();
             ExecutionResult correlatedRes = portfolioSimulator.simulate(
                     request.initialPrices(),
                     trajectories,
@@ -98,9 +103,14 @@ public class PortfolioSimulationController {
                     tau,
                     numPaths
             );
+            long simEnd = System.nanoTime();
+            long simulationTimeNs = simEnd - simStart;
 
-            // 5. Calculate Risk Diversification Benefit (Volatility reduction)
+            
             double diversificationBenefit = uncorrelatedRes.shortfallStandardDeviation() - correlatedRes.shortfallStandardDeviation();
+
+            long endTime = System.nanoTime();
+            long totalTimeNs = endTime - startTime;
 
             PortfolioSimulationResponse response = new PortfolioSimulationResponse(
                     trajectories,
@@ -108,13 +118,16 @@ public class PortfolioSimulationController {
                     uncorrelatedRes,
                     diversificationBenefit,
                     finalCorr,
-                    correlationRepaired
+                    correlationRepaired,
+                    optimizationTimeNs,
+                    simulationTimeNs,
+                    totalTimeNs
             );
 
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException e) {
-            // Handle non-positive-definite correlation matrix error from Cholesky gracefully
+            
             return ResponseEntity.badRequest().body("EXECUTION ERROR: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("SYSTEM ERROR: " + e.getMessage());
@@ -148,14 +161,14 @@ public class PortfolioSimulationController {
 
         Map<String, Object> jsonPayload = new LinkedHashMap<>();
         
-        // 1. Methodology
+        
         Map<String, Object> methodology = new LinkedHashMap<>();
         methodology.put("optimizationFramework", "Almgren-Chriss Optimal Execution");
         methodology.put("riskModeling", "10,000-path Monte Carlo Simulation with Cholesky Decomposition");
         methodology.put("costRiskMetrics", "Expected Shortfall & Shortfall Volatility (SD)");
         jsonPayload.put("methodology", methodology);
 
-        // 2. Input Parameters
+        
         Map<String, Object> inputParams = new LinkedHashMap<>();
         inputParams.put("numSteps", request.numSteps());
         inputParams.put("lambda", request.lambda());
@@ -175,7 +188,7 @@ public class PortfolioSimulationController {
         inputParams.put("correlationMatrix", request.correlationMatrix());
         jsonPayload.put("inputParameters", inputParams);
 
-        // 3. Detailed Outputs
+        
         Map<String, Object> detailedOutputs = new LinkedHashMap<>();
         detailedOutputs.put("trajectories", reportPayload.trajectories());
         
@@ -320,7 +333,7 @@ public class PortfolioSimulationController {
         }
 
         if (!repaired) {
-            return null; // Return null to indicate no repair was needed
+            return null; 
         }
 
         double[][] reconstructed = new double[n][n];
@@ -334,7 +347,7 @@ public class PortfolioSimulationController {
             }
         }
 
-        // Re-normalize diagonal to 1.0 (correlation matrix boundary condition)
+        
         double[] diagSqrt = new double[n];
         for (int i = 0; i < n; i++) {
             diagSqrt[i] = Math.sqrt(reconstructed[i][i]);

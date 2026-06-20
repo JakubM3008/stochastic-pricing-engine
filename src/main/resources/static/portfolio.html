@@ -17,12 +17,12 @@
             --border-color: #333333;
             --border-color-hover: #555555;
             --border-color-focus: #ffa500;
-            --accent-primary: #ffa500; /* Bloomberg Amber/Orange */
-            --accent-optimal: #00ff00; /* Terminal Green */
-            --accent-twap: #ffff00; /* Yellow */
-            --accent-vwap: #00ffff; /* Cyan */
-            --text-main: #ffffff; /* White */
-            --text-muted: #888888; /* Gray */
+            --accent-primary: #ffa500; 
+            --accent-optimal: #00ff00; 
+            --accent-twap: #ffff00; 
+            --accent-vwap: #00ffff; 
+            --text-main: #ffffff; 
+            --text-muted: #888888; 
             --input-bg: #000000;
         }
 
@@ -30,8 +30,8 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            border-radius: 0 !important; /* Zero roundness anywhere */
-            box-shadow: none !important; /* No modern soft shadows */
+            border-radius: 0 !important; 
+            box-shadow: none !important; 
         }
 
         body {
@@ -47,7 +47,7 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Layout Container */
+        
         .container {
             max-width: 100%;
             padding: 0.75rem;
@@ -57,7 +57,7 @@
             flex: 1;
         }
 
-        /* Terminal Top Bar */
+        
         .terminal-topbar {
             background-color: #111111;
             border-bottom: 1px solid var(--border-color);
@@ -86,7 +86,7 @@
             text-decoration: underline;
         }
 
-        /* Dashboard Grid Layout */
+        
         .dashboard-grid {
             display: grid;
             grid-template-columns: 360px 1fr;
@@ -100,7 +100,7 @@
             }
         }
 
-        /* Flat Terminal Panels */
+        
         .panel {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
@@ -127,7 +127,7 @@
             color: var(--accent-primary);
         }
 
-        /* Form elements */
+        
         .form-group {
             margin-bottom: 0.75rem;
         }
@@ -157,7 +157,7 @@
             color: var(--accent-primary);
         }
 
-        /* Terminal Style Action Buttons */
+        
         .btn {
             display: block;
             width: 100%;
@@ -191,7 +191,7 @@
             color: var(--text-muted);
         }
 
-        /* Monospace ASCII Loading Animations */
+        
         .loading {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -228,7 +228,7 @@
             font-size: 11px;
         }
 
-        /* High-Density Charts Layout */
+        
         .charts-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -253,7 +253,7 @@
             will-change: transform;
         }
 
-        /* Monospace Grid Tables */
+        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -289,7 +289,7 @@
             background: #111111;
         }
 
-        /* Documentation Modal Overlay */
+        
         #helpModal {
             display: none;
             position: fixed;
@@ -315,7 +315,7 @@
             z-index: 99;
         }
 
-        /* Terminal Footer Status Bar */
+        
         .terminal-footer {
             background-color: #111111;
             border-top: 1px solid var(--border-color);
@@ -340,7 +340,7 @@
             display: none;
         }
 
-        /* Custom Toggle Switch Bracket [X]/[ ] styling */
+        
         .terminal-toggle {
             display: inline-flex;
             align-items: center;
@@ -366,14 +366,14 @@
             color: var(--accent-optimal);
         }
 
-        /* Quant Report Container (CRT console styling) */
+        
         .report-box {
             background: #000000;
             border: 1px solid var(--border-color);
             padding: 0.75rem;
             font-family: 'JetBrains Mono', monospace;
             line-height: 1.5;
-            color: var(--accent-optimal); /* Green screen printout style */
+            color: var(--accent-optimal); 
             font-size: 11px;
             white-space: pre-wrap;
             contain: content;
@@ -386,7 +386,7 @@
             text-transform: uppercase;
             margin-top: 0.75rem;
             margin-bottom: 0.25rem;
-            color: var(--accent-twap); /* Yellow titles */
+            color: var(--accent-twap); 
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 0.1rem;
         }
@@ -650,6 +650,54 @@
                     <div style="color: var(--accent-primary); font-weight: bold; margin-bottom: 0.25rem;">[PORTFOLIO COVARIANCE DIVERSIFICATION DETAILS]</div>
                     <span>When asset returns are positively correlated (&rho; > 0), price shocks reinforce each other, inflating the expected shortfall volatility (portfolio variance). Conversely, when correlations are low or negative, independent fluctuations offset each other, yielding a <strong>diversification benefit</strong> ($SD_{uncorrelated} - SD_{correlated}$) mapped via the Cholesky factor matrix: <strong>Y = L * Z</strong>.</span>
                 </div>
+
+                <!-- Computation Profiling Panel -->
+                <div class="panel" id="profilingPanel">
+                    <div class="panel-header">
+                        <span class="panel-title">5 &lt;Go&gt; Computation Profiling</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Operation</th>
+                                <th>Component / Runtime</th>
+                                <th class="text-right">Latency (ms)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="color: var(--accent-optimal); font-weight: bold;">Backend Trajectory Optimization</td>
+                                <td>Almgren-Chriss (Java)</td>
+                                <td id="optTime" class="text-right">—</td>
+                            </tr>
+                            <tr>
+                                <td style="color: var(--accent-optimal); font-weight: bold;">Backend Monte Carlo Simulation</td>
+                                <td>Native Rust SIMD (via FFM)</td>
+                                <td id="simTime" class="text-right">—</td>
+                            </tr>
+                            <tr>
+                                <td style="color: var(--text-muted); font-weight: bold;">Server-Side Overhead</td>
+                                <td>Java Controller &amp; Marshalling</td>
+                                <td id="overheadTime" class="text-right">—</td>
+                            </tr>
+                            <tr>
+                                <td style="color: var(--accent-twap); font-weight: bold;">Client-Side Rendering</td>
+                                <td>DOM &amp; Chart.js Paint</td>
+                                <td id="renderTime" class="text-right">—</td>
+                            </tr>
+                            <tr>
+                                <td style="color: var(--accent-vwap); font-weight: bold;">AI Report Generation</td>
+                                <td>Gemini API / Local Fallback</td>
+                                <td id="aiTime" class="text-right">—</td>
+                            </tr>
+                            <tr style="border-top: 2px solid var(--border-color); font-weight: bold; color: var(--accent-primary);">
+                                <td>Total End-to-End Latency</td>
+                                <td>Full Transaction Cycle</td>
+                                <td id="e2eTime" class="text-right">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -679,7 +727,7 @@
     </div>
 
     <script>
-        // Form Elements
+        
         const form = document.getElementById('portfolioForm');
         const lambdaInput = document.getElementById('lambda');
 
@@ -689,7 +737,7 @@
             lambdaInput.value = val.toExponential(4);
         });
 
-        // Initialize Charts
+        
         let decayChart = null;
         let riskChart = null;
 
@@ -755,7 +803,7 @@
 
             const numSteps = parseInt(document.getElementById('numSteps').value);
 
-            // Reconstruct Correlation Matrix
+            
             const rho12 = parseFloat(document.getElementById('rho12').value);
             const rho13 = parseFloat(document.getElementById('rho13').value);
             const rho23 = parseFloat(document.getElementById('rho23').value);
@@ -827,10 +875,23 @@
                 }
 
                 const data = await response.json();
+                
+                const renderStart = performance.now();
                 updateUI(data, numSteps);
+                const renderTime = performance.now() - renderStart;
+
+                
+                document.getElementById('optTime').textContent = (data.optimizationTimeNs / 1e6).toFixed(2) + " ms";
+                document.getElementById('simTime').textContent = (data.simulationTimeNs / 1e6).toFixed(2) + " ms";
+                const overhead = Math.max(0, (data.totalTimeNs - data.optimizationTimeNs - data.simulationTimeNs) / 1e6);
+                document.getElementById('overheadTime').textContent = overhead.toFixed(2) + " ms";
+                document.getElementById('renderTime').textContent = renderTime.toFixed(2) + " ms";
+                document.getElementById('aiTime').textContent = "RUNNING...";
+                document.getElementById('e2eTime').textContent = "CALCULATING...";
+
                 loader.classList.remove('active');
 
-                // Trigger background fetch for the report
+                
                 const bypassAI = !document.getElementById('aiToggle').checked;
                 const reportPayload = {
                     request: requestPayload,
@@ -839,6 +900,8 @@
                     diversificationBenefit: data.diversificationBenefit,
                     trajectories: data.trajectories
                 };
+                
+                const aiStart = performance.now();
                 fetch(`/api/portfolio/report?bypassAI=${bypassAI}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -853,20 +916,34 @@
                 })
                 .then((reportMarkdown) => {
                     renderReport(reportMarkdown);
+                    const aiTime = performance.now() - aiStart;
+                    document.getElementById('aiTime').textContent = aiTime.toFixed(2) + " ms";
+                    const totalE2E = (data.totalTimeNs / 1e6) + renderTime + aiTime;
+                    document.getElementById('e2eTime').textContent = totalE2E.toFixed(2) + " ms";
                 })
                 .catch((reportErr) => {
                     reportContent.innerHTML = `<span style="color: #ff3333; font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: bold;">SYS_ERROR: API TRANSACTION FAILED: ${reportErr.message}</span>`;
+                    const aiTime = performance.now() - aiStart;
+                    document.getElementById('aiTime').textContent = aiTime.toFixed(2) + " ms (FAIL)";
+                    const totalE2E = (data.totalTimeNs / 1e6) + renderTime + aiTime;
+                    document.getElementById('e2eTime').textContent = totalE2E.toFixed(2) + " ms";
                 });
 
             } catch (err) {
                 alert(err.message);
                 loader.classList.remove('active');
                 reportContent.innerHTML = `<span style="color: #ff3333; font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: bold;">SYS_ERROR: SIMULATION FAILED: ${err.message}</span>`;
+                document.getElementById('optTime').textContent = "—";
+                document.getElementById('simTime').textContent = "—";
+                document.getElementById('overheadTime').textContent = "—";
+                document.getElementById('renderTime').textContent = "—";
+                document.getElementById('aiTime').textContent = "—";
+                document.getElementById('e2eTime').textContent = "—";
             }
         });
 
         function updateUI(data, numSteps) {
-            // Update Table
+            
             document.getElementById('corrES').textContent = formatCurrency(data.correlatedResult.expectedShortfall);
             document.getElementById('corrSD').textContent = formatCurrency(data.correlatedResult.shortfallStandardDeviation);
             document.getElementById('corrVar').textContent = formatCurrency(data.correlatedResult.shortfallVariance);
@@ -875,7 +952,7 @@
             document.getElementById('uncorrSD').textContent = formatCurrency(data.uncorrelatedResult.shortfallStandardDeviation);
             document.getElementById('uncorrVar').textContent = formatCurrency(data.uncorrelatedResult.shortfallVariance);
 
-            // Display Diversification Benefit
+            
             const badge = document.getElementById('benefitBadge');
             if (data.diversificationBenefit >= 0) {
                 badge.textContent = `DIVERSIFICATION BENEFIT (RISK SD REDUCTION): ${formatCurrency(data.diversificationBenefit)}`;
@@ -888,7 +965,7 @@
             }
             badge.style.display = 'block';
 
-            // Update Decay Chart
+            
             const labels = ['Start'];
             for (let i = 1; i <= numSteps; i++) {
                 labels.push(`Step ${i}`);
@@ -899,15 +976,15 @@
             decayChart.data.datasets[2].data = data.trajectories[2];
             decayChart.update();
 
-            // Update Risk Chart
+            
             riskChart.data.datasets[0].data = [data.correlatedResult.expectedShortfall, data.correlatedResult.shortfallStandardDeviation];
             riskChart.data.datasets[1].data = [data.uncorrelatedResult.expectedShortfall, data.uncorrelatedResult.shortfallStandardDeviation];
             riskChart.update();
 
-            // Handle correlation repair warning
+            
             const footerStatus = document.getElementById('footerStatus');
             if (data.correlationRepaired) {
-                // Update inputs on the page to match the repaired values
+                
                 document.getElementById('rho12').value = data.repairedCorrelationMatrix[0][1].toFixed(2);
                 document.getElementById('rho13').value = data.repairedCorrelationMatrix[0][2].toFixed(2);
                 document.getElementById('rho23').value = data.repairedCorrelationMatrix[1][2].toFixed(2);
@@ -943,7 +1020,7 @@
             }
         }
 
-        // Terminal Keyboard Hotkeys Listener
+        
         window.addEventListener('keydown', (e) => {
             if (e.key === 'F1') {
                 e.preventDefault();
@@ -967,21 +1044,21 @@
                 return;
             }
             
-            // Basic markdown string parser for formatting report cards
+            
             let html = mdText
                 .replace(/^### (.*$)/gim, '<h3>$1</h3>')
                 .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/gim, '<em>$1</em>')
                 .replace(/^\* (.*$)/gim, '<li>$1</li>');
             
-            // Wrap bullet lists
+            
             if (html.includes('<li>')) {
                 html = html.replace(/(<li>.*<\/li>)/sim, '<ul>$1</ul>');
             }
             container.innerHTML = html;
         }
 
-        // Save and restore AI toggle state
+        
         const aiToggle = document.getElementById('aiToggle');
         aiToggle.addEventListener('change', () => {
             localStorage.setItem('portfolioAiToggle', aiToggle.checked ? 'true' : 'false');
@@ -991,7 +1068,7 @@
             aiToggle.checked = (savedToggle === 'true');
         }
 
-        // Initialize on page load
+        
         initializeCharts();
     </script>
 </body>

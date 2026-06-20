@@ -6,10 +6,12 @@ import com.quant.pricing.domain.ExecutionResult;
 import com.quant.pricing.domain.ExecutionSimulator;
 import com.quant.pricing.domain.VwapTrajectoryGenerator;
 import org.springframework.web.bind.annotation.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*") // Enable CORS for easy local dashboard integration
+@CrossOrigin(origins = "*")
 public class SimulationController {
 
     private final ExecutionAgent agent;
@@ -28,9 +30,8 @@ public class SimulationController {
     @PostMapping("/simulate")
     public SimulationResponse runSimulation(@RequestBody SimulationRequest request) {
         double tau = 1.0;
-        int numPaths = 10000; // Standard Monte Carlo sizing
+        int numPaths = 10000;
 
-        // 1. Calculate holding trajectories
         double[] optimal = optimizer.optimize(
                 request.totalShares(), request.numSteps(), request.stepVolatility(), 
                 request.lambda(), request.eta(), request.gamma(), tau
@@ -41,14 +42,12 @@ public class SimulationController {
                 0.0, request.eta(), request.gamma(), tau
         );
 
-        // Standard bimodal volume curve if not provided, else use request profile
         double[] volumeProfile = request.volumeProfile();
         if (volumeProfile == null || volumeProfile.length == 0) {
             volumeProfile = new double[]{0.35, 0.15, 0.10, 0.15, 0.25};
         }
         double[] vwap = vwapGenerator.generate(request.totalShares(), volumeProfile);
 
-        // 2. Run vectorized Monte Carlo path simulations (Loom-backed)
         ExecutionResult optimalRes = simulator.simulate(
                 request.initialPrice(), optimal, request.numSteps(), 
                 request.stepVolatility(), request.eta(), request.gamma(), tau, numPaths
@@ -64,8 +63,30 @@ public class SimulationController {
                 request.stepVolatility(), request.eta(), request.gamma(), tau, numPaths
         );
 
-        // Bypass blocking LLM report compilation inside execution controller
         return new SimulationResponse(optimal, twap, vwap, optimalRes, twapRes, vwapRes, null);
+    }
+
+    @PostMapping("/frontier")
+    public List<FrontierPoint> getFrontier(@RequestBody SimulationRequest request) {
+        double tau = 1.0;
+        List<FrontierPoint> frontier = new ArrayList<>();
+        double minLog = -8.0;
+        double maxLog = -2.0;
+        int steps = 20;
+        for (int i = 0; i <= steps; i++) {
+            double logVal = minLog + (maxLog - minLog) * i / steps;
+            double l = Math.pow(10, logVal);
+            double[] trajectory = optimizer.optimize(
+                    request.totalShares(), request.numSteps(), request.stepVolatility(),
+                    l, request.eta(), request.gamma(), tau
+            );
+            ExecutionResult res = simulator.simulate(
+                    request.initialPrice(), trajectory, request.numSteps(),
+                    request.stepVolatility(), request.eta(), request.gamma(), tau, 2000
+            );
+            frontier.add(new FrontierPoint(l, res.expectedShortfall(), res.shortfallStandardDeviation()));
+        }
+        return frontier;
     }
 
     @PostMapping("/report")
