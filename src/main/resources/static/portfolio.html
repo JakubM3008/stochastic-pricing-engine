@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stochastic Portfolio Execution Terminal [AC_SIM_PORTFOLIO]</title>
+    <!-- Google Fonts: JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --panel-bg: #000000;
+            --border-color: #333333;
+            --border-color-hover: #555555;
+            --border-color-focus: #ffa500;
+            --accent-primary: #ffa500; /* Bloomberg Amber/Orange */
+            --accent-optimal: #00ff00; /* Terminal Green */
+            --accent-twap: #ffff00; /* Yellow */
+            --accent-vwap: #00ffff; /* Cyan */
+            --text-main: #ffffff; /* White */
+            --text-muted: #888888; /* Gray */
+            --input-bg: #000000;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            border-radius: 0 !important; /* Zero roundness anywhere */
+            box-shadow: none !important; /* No modern soft shadows */
+        }
+
+        body {
+            font-family: 'JetBrains Mono', Courier, monospace;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-size: 11px;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Layout Container */
+        .container {
+            max-width: 100%;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            flex: 1;
+        }
+
+        /* Terminal Top Bar */
+        .terminal-topbar {
+            background-color: #111111;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.4rem 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            color: var(--accent-primary);
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .terminal-topbar-links {
+            display: flex;
+            gap: 1.5rem;
+            color: var(--accent-optimal);
+        }
+
+        .terminal-topbar-links span {
+            cursor: pointer;
+        }
+
+        .terminal-topbar-links span:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        /* Dashboard Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 0.75rem;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Flat Terminal Panels */
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            position: relative;
+            contain: content;
+            will-change: transform;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #111111;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.25rem 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--accent-primary);
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 0.75rem;
+        }
+
+        label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+        }
+
+        input[type="number"], input[type="time"], input[type="text"] {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: #ffffff;
+            padding: 0.25rem 0.4rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+        }
+
+        input[type="number"]:focus, input[type="time"]:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: var(--border-color-focus);
+            color: var(--accent-primary);
+        }
+
+        /* Terminal Style Action Buttons */
+        .btn {
+            display: block;
+            width: 100%;
+            background: #000000;
+            color: var(--accent-optimal);
+            border: 1px solid var(--accent-optimal);
+            padding: 0.5rem;
+            font-weight: 700;
+            font-size: 11px;
+            cursor: pointer;
+            text-transform: uppercase;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .btn:hover {
+            background: var(--accent-optimal);
+            color: #000000;
+        }
+
+        .btn:active {
+            background: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
+        }
+
+        .btn:disabled {
+            opacity: 0.25;
+            cursor: not-allowed;
+            border-color: var(--border-color);
+            color: var(--text-muted);
+        }
+
+        /* Monospace ASCII Loading Animations */
+        .loading {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            border: 1px solid var(--border-color);
+            will-change: opacity, transform;
+            transform: translate3d(0, 0, 0);
+        }
+
+        .loading.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        @keyframes terminal-loading {
+            0% { content: "[ - ] RUNNING BASKET MONTE CARLO..."; }
+            25% { content: "[ \\ ] RUNNING BASKET MONTE CARLO..."; }
+            50% { content: "[ | ] RUNNING BASKET MONTE CARLO..."; }
+            75% { content: "[ / ] RUNNING BASKET MONTE CARLO..."; }
+        }
+        
+        .loading.active .terminal-spinner::after {
+            content: "[ - ] RUNNING BASKET MONTE CARLO...";
+            animation: terminal-loading 0.8s steps(4) infinite;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: bold;
+            color: var(--accent-primary);
+            font-size: 11px;
+        }
+
+        /* High-Density Charts Layout */
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-box {
+            position: relative;
+            height: 240px;
+            width: 100%;
+            margin-top: 0.5rem;
+            border: 1px solid var(--border-color);
+            background-color: #000000;
+            padding: 0.25rem;
+            contain: content;
+            will-change: transform;
+        }
+
+        /* Monospace Grid Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5rem;
+            font-size: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        th, td {
+            text-align: left;
+            padding: 0.4rem 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #111111;
+            color: var(--accent-primary);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 9px;
+        }
+
+        td {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-main);
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        tr:hover td {
+            background: #111111;
+        }
+
+        /* Documentation Modal Overlay */
+        #helpModal {
+            display: none;
+            position: fixed;
+            top: 15%;
+            left: 20%;
+            width: 60%;
+            background: #000000;
+            border: 1px solid var(--accent-primary);
+            padding: 1.25rem;
+            z-index: 100;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        #helpOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 99;
+        }
+
+        /* Terminal Footer Status Bar */
+        .terminal-footer {
+            background-color: #111111;
+            border-top: 1px solid var(--border-color);
+            padding: 0.3rem 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: auto;
+        }
+
+        .benefit-badge {
+            background-color: #111111;
+            border: 1px solid var(--accent-optimal);
+            padding: 0.5rem;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--accent-optimal);
+            margin-bottom: 0.75rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Bloomberg Top Bar -->
+    <div class="terminal-topbar">
+        <div>AC_SIM &lt;Go&gt;   ALMGREN-CHRISS RISK TERMINAL [PORTFOLIO]</div>
+        <div class="terminal-topbar-links">
+            <span onclick="toggleHelp()">F1:HELP</span>
+            <span onclick="resetParameters()">F2:RESET</span>
+            <span onclick="window.location.href='/'">F4:STANDARD</span>
+            <span onclick="window.location.href='/dynamic'">F5:DYNAMIC</span>
+            <span style="color: var(--accent-optimal);">STATUS: ONLINE</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="dashboard-grid">
+            
+            <!-- Left panel: Control parameters -->
+            <form id="portfolioForm" class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">1 &lt;Go&gt; Basket Assets (3-Stock Portfolio)</span>
+                </div>
+
+                <!-- Asset Configurations -->
+                <div class="form-group">
+                    <label>Position Setup (S1, S2, S3)</label>
+                    <table style="width: 100%; margin-bottom: 0.75rem;">
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Shares</th>
+                                <th>Price ($)</th>
+                                <th>Vol</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="color: var(--accent-optimal); font-weight: bold;">S1</td>
+                                <td><input type="number" id="shares1" value="1000000" min="1" step="any"></td>
+                                <td><input type="number" id="price1" value="100.00" min="0.01" step="any"></td>
+                                <td><input type="text" id="vol1" value="0.20"></td>
+                            </tr>
+                            <tr>
+                                <td style="color: var(--accent-twap); font-weight: bold;">S2</td>
+                                <td><input type="number" id="shares2" value="800000" min="1" step="any"></td>
+                                <td><input type="number" id="price2" value="150.00" min="0.01" step="any"></td>
+                                <td><input type="text" id="vol2" value="0.15"></td>
+                            </tr>
+                            <tr>
+                                <td style="color: var(--accent-vwap); font-weight: bold;">S3</td>
+                                <td><input type="number" id="shares3" value="1200000" min="1" step="any"></td>
+                                <td><input type="number" id="price3" value="80.00" min="0.01" step="any"></td>
+                                <td><input type="text" id="vol3" value="0.25"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="form-group">
+                    <label>Impact Coefficients (&eta; / &gamma;)</label>
+                    <table style="width: 100%; margin-bottom: 0.75rem;">
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Temp &eta;</th>
+                                <th>Perm &gamma;</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="color: var(--accent-optimal); font-weight: bold;">S1</td>
+                                <td><input type="text" id="eta1" value="1.00e-5"></td>
+                                <td><input type="text" id="gamma1" value="1.00e-6"></td>
+                            </tr>
+                            <tr>
+                                <td style="color: var(--accent-twap); font-weight: bold;">S2</td>
+                                <td><input type="text" id="eta2" value="1.50e-5"></td>
+                                <td><input type="text" id="gamma2" value="8.00e-7"></td>
+                            </tr>
+                            <tr>
+                                <td style="color: var(--accent-vwap); font-weight: bold;">S3</td>
+                                <td><input type="text" id="eta3" value="8.00e-6"></td>
+                                <td><input type="text" id="gamma3" value="1.20e-6"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Symmetric Correlation Matrix Inputs -->
+                <div class="form-group">
+                    <label>Correlation Matrix (&rho;)</label>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; text-align: center; font-size: 10px; background: #111111; border: 1px solid var(--border-color); padding: 4px;">
+                        <span style="color: var(--text-muted); font-weight: bold;">Asset</span>
+                        <span style="color: var(--accent-optimal); font-weight: bold;">S1</span>
+                        <span style="color: var(--accent-twap); font-weight: bold;">S2</span>
+                        <span style="color: var(--accent-vwap); font-weight: bold;">S3</span>
+
+                        <span style="color: var(--accent-optimal); font-weight: bold;">S1</span>
+                        <span style="color: var(--text-muted);">1.00</span>
+                        <input type="number" id="rho12" value="0.50" min="-0.99" max="0.99" step="any" style="border: none; text-align: center; background: #000; color: white;">
+                        <input type="number" id="rho13" value="0.30" min="-0.99" max="0.99" step="any" style="border: none; text-align: center; background: #000; color: white;">
+
+                        <span style="color: var(--accent-twap); font-weight: bold;">S2</span>
+                        <span style="color: var(--text-muted);">—</span>
+                        <span style="color: var(--text-muted);">1.00</span>
+                        <input type="number" id="rho23" value="0.40" min="-0.99" max="0.99" step="any" style="border: none; text-align: center; background: #000; color: white;">
+
+                        <span style="color: var(--accent-vwap); font-weight: bold;">S3</span>
+                        <span style="color: var(--text-muted);">—</span>
+                        <span style="color: var(--text-muted);">—</span>
+                        <span style="color: var(--text-muted);">1.00</span>
+                    </div>
+                </div>
+
+                <!-- Common Settings -->
+                <div class="form-group">
+                    <label for="lambda">Risk Aversion (&lambda;)</label>
+                    <input type="text" id="lambda" value="1.00e-4">
+                </div>
+
+                <div class="form-group">
+                    <label for="numSteps">Liquidation Steps (N)</label>
+                    <input type="number" id="numSteps" value="5" min="2" max="20" step="any">
+                </div>
+
+                <button type="submit" class="btn">EXECUTE PORTFOLIO &lt;Go&gt;</button>
+            </form>
+
+            <!-- Right side content -->
+            <div class="main-content" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                
+                <!-- Diversification Benefit Badge -->
+                <div class="benefit-badge" id="benefitBadge">
+                    DIVERSIFICATION BENEFIT: — (RISK REDUCTION)
+                </div>
+
+                <!-- Curves and Graphs panel -->
+                <div class="panel" style="position: relative;">
+                    <div class="loading" id="loader">
+                        <div class="terminal-spinner"></div>
+                    </div>
+
+                    <div class="panel-header">
+                        <span class="panel-title">2 &lt;Go&gt; Holdings Decay Schedules &amp; Shorter Variance Comparison</span>
+                    </div>
+
+                    <div class="charts-container">
+                        <!-- Chart 1: Holding Trajectories -->
+                        <div>
+                            <span style="font-size: 10px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Holding decay curves</span>
+                            <div class="chart-box">
+                                <canvas id="decayChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 2: Cost-Risk comparison -->
+                        <div>
+                            <span style="font-size: 10px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Correlated vs Uncorrelated Shortfall Risk</span>
+                            <div class="chart-box">
+                                <canvas id="riskComparisonChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics breakdown table -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">3 &lt;Go&gt; Basket Simulation Metrics (10,000 paths)</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Portfolio Configuration</th>
+                                <th class="text-right">Expected Shortfall (Cost)</th>
+                                <th class="text-right">Risk Standard Deviation</th>
+                                <th class="text-right">Liquidation Variance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="color: var(--accent-optimal);">
+                                <td style="font-weight: bold;">Correlated Portfolio (Basket)</td>
+                                <td id="corrES" class="text-right">—</td>
+                                <td id="corrSD" class="text-right">—</td>
+                                <td id="corrVar" class="text-right">—</td>
+                            </tr>
+                            <tr style="color: var(--accent-twap);">
+                                <td style="font-weight: bold;">Uncorrelated Portfolio (Independent Sum)</td>
+                                <td id="uncorrES" class="text-right">—</td>
+                                <td id="uncorrSD" class="text-right">—</td>
+                                <td id="uncorrVar" class="text-right">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Technical Quant notes -->
+                <div class="panel" style="font-family: 'JetBrains Mono', monospace; font-size: 10px; line-height: 1.5; color: #888888; border: 1px solid var(--border-color);">
+                    <div style="color: var(--accent-primary); font-weight: bold; margin-bottom: 0.25rem;">[PORTFOLIO COVARIANCE DIVERSIFICATION DETAILS]</div>
+                    <span>When asset returns are positively correlated (&rho; > 0), price shocks reinforce each other, inflating the expected shortfall volatility (portfolio variance). Conversely, when correlations are low or negative, independent fluctuations offset each other, yielding a <strong>diversification benefit</strong> ($SD_{uncorrelated} - SD_{correlated}$) mapped via the Cholesky factor matrix: <strong>Y = L * Z</strong>.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentation Modal Drawer -->
+    <div id="helpOverlay" onclick="toggleHelp()"></div>
+    <div id="helpModal">
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--accent-primary); padding-bottom: 0.5rem; margin-bottom: 1rem; font-weight: bold; color: var(--accent-primary); text-transform: uppercase;">
+            <span>Basket Pricing &amp; Diversification Help</span>
+            <span style="cursor: pointer;" onclick="toggleHelp()">[CLOSE X]</span>
+        </div>
+        <div style="color: #ffffff; line-height: 1.6; font-size: 10px;">
+            <p style="margin-bottom: 0.5rem;"><strong>S1, S2, S3 PARAMETERS:</strong> Customize positions sizes, prices, volatilities, and transaction impact costs for each asset independently.</p>
+            <p style="margin-bottom: 0.5rem;"><strong>CORRELATION MATRIX (&rho;):</strong> Off-diagonal coefficients determine linear dependence between assets returns. Matrix must remain positive-definite to allow Cholesky factor decomposition.</p>
+            <p style="margin-bottom: 0.5rem;"><strong>RISK AVERSION (&lambda;):</strong> Common utility threshold representing the cost-risk trade-off. Drives decay optimization schedules.</p>
+            <p style="margin-bottom: 0.5rem;"><strong>DIVERSIFICATION BENEFIT:</strong> Volatility reduction calculated by comparing the correlated basket shortfall standard deviation against the uncorrelated basket sum.</p>
+        </div>
+        <div style="margin-top: 1rem; text-align: right; color: var(--text-muted); font-size: 9px;">
+            Press F1 or click close to return to the active terminal.
+        </div>
+    </div>
+
+    <!-- Bloomberg Footer Status Bar -->
+    <div class="terminal-footer">
+        <div>PORT: 8080 | ENGINE: JVM STOCHASTIC RISK ENGINE v2.0</div>
+        <div>PORTFOLIO ENGINE ACTIVE | CHOLESKY SIMD SHOCK GENERATOR</div>
+    </div>
+
+    <script>
+        // Form Elements
+        const form = document.getElementById('portfolioForm');
+        const lambdaInput = document.getElementById('lambda');
+
+        lambdaInput.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val) || val <= 0) val = 1e-4;
+            lambdaInput.value = val.toExponential(4);
+        });
+
+        // Initialize Charts
+        let decayChart = null;
+        let riskChart = null;
+
+        Chart.defaults.font.family = "'JetBrains Mono', Courier, monospace";
+        Chart.defaults.color = "#888888";
+        Chart.defaults.plugins.tooltip.backgroundColor = "#000000";
+        Chart.defaults.plugins.tooltip.borderColor = "#333333";
+        Chart.defaults.plugins.tooltip.borderWidth = 1;
+        Chart.defaults.plugins.tooltip.titleColor = "#ffffff";
+        Chart.defaults.plugins.tooltip.bodyColor = "#ffffff";
+        Chart.defaults.plugins.tooltip.padding = 6;
+        Chart.defaults.plugins.tooltip.cornerRadius = 0;
+
+        function initializeCharts() {
+            const ctx1 = document.getElementById('decayChart').getContext('2d');
+            decayChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'S1 Holdings', borderColor: '#00ff00', backgroundColor: 'transparent', data: [], borderWidth: 2, tension: 0 },
+                        { label: 'S2 Holdings', borderColor: '#ffff00', backgroundColor: 'transparent', data: [], borderWidth: 2, tension: 0 },
+                        { label: 'S3 Holdings', borderColor: '#00ffff', backgroundColor: 'transparent', data: [], borderWidth: 2, tension: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { ticks: { color: '#888888', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { ticks: { color: '#888888', font: { size: 9 } }, grid: { display: false } }
+                    },
+                    plugins: { legend: { position: 'top', align: 'end', labels: { color: '#ffffff', boxWidth: 10, font: { size: 9 } } } }
+                }
+            });
+
+            const ctx2 = document.getElementById('riskComparisonChart').getContext('2d');
+            riskChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['Expected Shortfall (Cost)', 'Risk Std Dev'],
+                    datasets: [
+                        { label: 'Correlated Portfolio', backgroundColor: '#00ff00', data: [], borderRadius: 0 },
+                        { label: 'Uncorrelated Portfolio', backgroundColor: '#ffff00', data: [], borderRadius: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { ticks: { color: '#888888', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { ticks: { color: '#888888', font: { size: 9 } }, grid: { display: false } }
+                    },
+                    plugins: { legend: { position: 'top', align: 'end', labels: { color: '#ffffff', boxWidth: 10, font: { size: 9 } } } }
+                }
+            });
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const loader = document.getElementById('loader');
+            loader.classList.add('active');
+
+            const numSteps = parseInt(document.getElementById('numSteps').value);
+
+            // Reconstruct Correlation Matrix
+            const rho12 = parseFloat(document.getElementById('rho12').value);
+            const rho13 = parseFloat(document.getElementById('rho13').value);
+            const rho23 = parseFloat(document.getElementById('rho23').value);
+
+            const correlationMatrix = [
+                [1.0, rho12, rho13],
+                [rho12, 1.0, rho23],
+                [rho13, rho23, 1.0]
+            ];
+
+            const requestPayload = {
+                initialPrices: [
+                    parseFloat(document.getElementById('price1').value),
+                    parseFloat(document.getElementById('price2').value),
+                    parseFloat(document.getElementById('price3').value)
+                ],
+                totalShares: [
+                    parseFloat(document.getElementById('shares1').value),
+                    parseFloat(document.getElementById('shares2').value),
+                    parseFloat(document.getElementById('shares3').value)
+                ],
+                stepVolatilities: [
+                    parseFloat(document.getElementById('vol1').value),
+                    parseFloat(document.getElementById('vol2').value),
+                    parseFloat(document.getElementById('vol3').value)
+                ],
+                etas: [
+                    parseFloat(document.getElementById('eta1').value),
+                    parseFloat(document.getElementById('eta2').value),
+                    parseFloat(document.getElementById('eta3').value)
+                ],
+                gammas: [
+                    parseFloat(document.getElementById('gamma1').value),
+                    parseFloat(document.getElementById('gamma2').value),
+                    parseFloat(document.getElementById('gamma3').value)
+                ],
+                correlationMatrix: correlationMatrix,
+                lambda: parseFloat(lambdaInput.value),
+                numSteps: numSteps
+            };
+
+            try {
+                const response = await fetch('/api/portfolio/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestPayload)
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(errText);
+                }
+
+                const data = await response.json();
+                updateUI(data, numSteps);
+                loader.classList.remove('active');
+
+            } catch (err) {
+                alert(err.message);
+                loader.classList.remove('active');
+            }
+        });
+
+        function updateUI(data, numSteps) {
+            // Update Table
+            document.getElementById('corrES').textContent = formatCurrency(data.correlatedResult.expectedShortfall);
+            document.getElementById('corrSD').textContent = formatCurrency(data.correlatedResult.shortfallStandardDeviation);
+            document.getElementById('corrVar').textContent = formatCurrency(data.correlatedResult.shortfallVariance);
+
+            document.getElementById('uncorrES').textContent = formatCurrency(data.uncorrelatedResult.expectedShortfall);
+            document.getElementById('uncorrSD').textContent = formatCurrency(data.uncorrelatedResult.shortfallStandardDeviation);
+            document.getElementById('uncorrVar').textContent = formatCurrency(data.uncorrelatedResult.shortfallVariance);
+
+            // Display Diversification Benefit
+            const badge = document.getElementById('benefitBadge');
+            badge.textContent = `DIVERSIFICATION BENEFIT (RISK SD REDUCTION): ${formatCurrency(data.diversificationBenefit)}`;
+            badge.style.display = 'block';
+
+            // Update Decay Chart
+            const labels = ['Start'];
+            for (let i = 1; i <= numSteps; i++) {
+                labels.push(`Step ${i}`);
+            }
+            decayChart.data.labels = labels;
+            decayChart.data.datasets[0].data = data.trajectories[0];
+            decayChart.data.datasets[1].data = data.trajectories[1];
+            decayChart.data.datasets[2].data = data.trajectories[2];
+            decayChart.update();
+
+            // Update Risk Chart
+            riskChart.data.datasets[0].data = [data.correlatedResult.expectedShortfall, data.correlatedResult.shortfallStandardDeviation];
+            riskChart.data.datasets[1].data = [data.uncorrelatedResult.expectedShortfall, data.uncorrelatedResult.shortfallStandardDeviation];
+            riskChart.update();
+        }
+
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+        }
+
+        function toggleHelp() {
+            const modal = document.getElementById('helpModal');
+            const overlay = document.getElementById('helpOverlay');
+            if (modal.style.display === 'block') {
+                modal.style.display = 'none';
+                overlay.style.display = 'none';
+            } else {
+                modal.style.display = 'block';
+                overlay.style.display = 'block';
+            }
+        }
+
+        function resetParameters() {
+            if (confirm("CONFIRM SYSTEM RESET: CLEAR ALL SAVED PORTFOLIO STATE?")) {
+                try {
+                    localStorage.clear();
+                } catch (e) {}
+                window.location.reload();
+            }
+        }
+
+        // Terminal Keyboard Hotkeys Listener
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'F1') {
+                e.preventDefault();
+                toggleHelp();
+            } else if (e.key === 'F2') {
+                e.preventDefault();
+                resetParameters();
+            } else if (e.key === 'F4') {
+                e.preventDefault();
+                window.location.href = '/';
+            } else if (e.key === 'F5') {
+                e.preventDefault();
+                window.location.href = '/dynamic';
+            }
+        });
+
+        // Initialize on page load
+        initializeCharts();
+    </script>
+</body>
+</html>
