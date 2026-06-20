@@ -1473,25 +1473,27 @@
         });
 
         let frontierChart = null;
+        let currentFrontierData = null;
 
-        function calculateAnalyticalMetrics(trajectory, eta, gamma, stepVolatility) {
-            const totalShares = trajectory[0];
-            const numSteps = trajectory.length - 1;
-            const tau = 1.0;
-            let expectedShortfall = 0.0;
-            let sumSqHoldings = 0.0;
-            for (let j = 1; j <= numSteps; j++) {
-                const t_j = trajectory[j - 1] - trajectory[j];
-                const x_j = trajectory[j];
-                expectedShortfall += t_j * (gamma * (totalShares - x_j) + eta * (t_j / tau));
-                const x_prev = trajectory[j - 1];
-                sumSqHoldings += x_prev * x_prev;
+        function getFrontierPointAtRisk(sorted, risk) {
+            if (!sorted || sorted.length === 0) return null;
+            if (risk <= sorted[0].x) {
+                return sorted[0];
             }
-            const variance = stepVolatility * stepVolatility * tau * sumSqHoldings;
-            return {
-                expectedShortfall,
-                shortfallStandardDeviation: Math.sqrt(variance)
-            };
+            if (risk >= sorted[sorted.length - 1].x) {
+                return sorted[sorted.length - 1];
+            }
+            for (let i = 0; i < sorted.length - 1; i++) {
+                if (risk >= sorted[i].x && risk <= sorted[i + 1].x) {
+                    const p0 = sorted[i];
+                    const p1 = sorted[i + 1];
+                    const t = (risk - p0.x) / (p1.x - p0.x);
+                    const y = p0.y + t * (p1.y - p0.y);
+                    const lambda = p0.lambda + t * (p1.lambda - p0.lambda);
+                    return { x: risk, y: y, lambda: lambda };
+                }
+            }
+            return null;
         }
 
         function renderFrontier(dataPoints, current) {
@@ -1501,6 +1503,8 @@
                 y: p.expectedShortfall,
                 lambda: p.lambda
             })).sort((a, b) => a.x - b.x);
+
+            currentFrontierData = sortedData;
 
             const datasets = [
                 {
@@ -1617,7 +1621,20 @@
                                     if (context.datasetIndex === 0) {
                                         return `Cost: ${formatCurrency(pt.y)} | Risk: ${formatCurrency(pt.x)} | Lambda: ${pt.lambda.toExponential(2)}`;
                                     }
-                                    return `${context.dataset.label} -> Cost: ${formatCurrency(pt.y)} | Risk: ${formatCurrency(pt.x)}`;
+                                    const lines = [
+                                        `${context.dataset.label}:`,
+                                        `  Cost (Simulated): ${formatCurrency(pt.y)}`,
+                                        `  Risk SD (Simulated): ${formatCurrency(pt.x)}`
+                                    ];
+                                    if (currentFrontierData && currentFrontierData.length > 0) {
+                                        const frontierPt = getFrontierPointAtRisk(currentFrontierData, pt.x);
+                                        if (frontierPt) {
+                                            lines.push(`Efficient Frontier (at same Risk):`);
+                                            lines.push(`  Cost (Analytical): ${formatCurrency(frontierPt.y)}`);
+                                            lines.push(`  Risk SD (Analytical): ${formatCurrency(frontierPt.x)}`);
+                                        }
+                                    }
+                                    return lines;
                                 }
                             }
                         },
@@ -1684,20 +1701,13 @@
 
                 let currentResults = null;
                 if (lastSimulationData) {
-                    const etaVal = parseFloat(document.getElementById('eta').value);
-                    const gammaVal = parseFloat(document.getElementById('gamma').value);
-                    
-                    const optAnal = calculateAnalyticalMetrics(lastSimulationData.optimalTrajectory, etaVal, gammaVal, stepVolValue);
-                    const twapAnal = calculateAnalyticalMetrics(lastSimulationData.twapTrajectory, etaVal, gammaVal, stepVolValue);
-                    const vwapAnal = calculateAnalyticalMetrics(lastSimulationData.vwapTrajectory, etaVal, gammaVal, stepVolValue);
-                    
                     currentResults = {
-                        optimalES: optAnal.expectedShortfall,
-                        optimalSD: optAnal.shortfallStandardDeviation,
-                        twapES: twapAnal.expectedShortfall,
-                        twapSD: twapAnal.shortfallStandardDeviation,
-                        vwapES: vwapAnal.expectedShortfall,
-                        vwapSD: vwapAnal.shortfallStandardDeviation
+                        optimalES: lastSimulationData.optimalResult.expectedShortfall,
+                        optimalSD: lastSimulationData.optimalResult.shortfallStandardDeviation,
+                        twapES: lastSimulationData.twapResult.expectedShortfall,
+                        twapSD: lastSimulationData.twapResult.shortfallStandardDeviation,
+                        vwapES: lastSimulationData.vwapResult.expectedShortfall,
+                        vwapSD: lastSimulationData.vwapResult.shortfallStandardDeviation
                     };
                 }
 
