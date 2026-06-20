@@ -6,10 +6,12 @@ import com.quant.pricing.domain.ExecutionResult;
 import com.quant.pricing.domain.ExecutionSimulator;
 import com.quant.pricing.domain.VwapTrajectoryGenerator;
 import org.springframework.web.bind.annotation.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*") // Enable CORS for easy local dashboard integration
+@CrossOrigin(origins = "*")
 public class SimulationController {
 
     private final ExecutionAgent agent;
@@ -28,9 +30,8 @@ public class SimulationController {
     @PostMapping("/simulate")
     public SimulationResponse runSimulation(@RequestBody SimulationRequest request) {
         double tau = 1.0;
-        int numPaths = 10000; // Standard Monte Carlo sizing
+        int numPaths = 10000;
 
-        // 1. Calculate holding trajectories
         double[] optimal = optimizer.optimize(
                 request.totalShares(), request.numSteps(), request.stepVolatility(), 
                 request.lambda(), request.eta(), request.gamma(), tau
@@ -41,14 +42,12 @@ public class SimulationController {
                 0.0, request.eta(), request.gamma(), tau
         );
 
-        // Standard bimodal volume curve if not provided, else use request profile
         double[] volumeProfile = request.volumeProfile();
         if (volumeProfile == null || volumeProfile.length == 0) {
             volumeProfile = new double[]{0.35, 0.15, 0.10, 0.15, 0.25};
         }
         double[] vwap = vwapGenerator.generate(request.totalShares(), volumeProfile);
 
-        // 2. Run vectorized Monte Carlo path simulations (Loom-backed)
         ExecutionResult optimalRes = simulator.simulate(
                 request.initialPrice(), optimal, request.numSteps(), 
                 request.stepVolatility(), request.eta(), request.gamma(), tau, numPaths
@@ -64,8 +63,67 @@ public class SimulationController {
                 request.stepVolatility(), request.eta(), request.gamma(), tau, numPaths
         );
 
-        // Bypass blocking LLM report compilation inside execution controller
         return new SimulationResponse(optimal, twap, vwap, optimalRes, twapRes, vwapRes, null);
+    }
+
+    @PostMapping("/frontier")
+    public List<FrontierPoint> getFrontier(@RequestBody SimulationRequest request) {
+        double tau = 1.0;
+        List<FrontierPoint> frontier = new ArrayList<>();
+        
+        double[] twapTrajectory = optimizer.optimize(
+                request.totalShares(), request.numSteps(), request.stepVolatility(),
+                0.0, request.eta(), request.gamma(), tau
+        );
+        double expectedShortfallTwap = 0.0;
+        double sumSqHoldingsTwap = 0.0;
+        for (int j = 1; j <= request.numSteps(); j++) {
+            double t_j = twapTrajectory[j - 1] - twapTrajectory[j];
+            double x_j = twapTrajectory[j];
+            expectedShortfallTwap += t_j * (request.gamma() * (request.totalShares() - x_j) + request.eta() * (t_j / tau));
+            double x_prev = twapTrajectory[j - 1];
+            sumSqHoldingsTwap += x_prev * x_prev;
+        }
+        double varianceTwap = request.stepVolatility() * request.stepVolatility() * tau * sumSqHoldingsTwap;
+        frontier.add(new FrontierPoint(0.0, expectedShortfallTwap, Math.sqrt(varianceTwap)));
+
+        double baseLambda = request.lambda();
+        if (baseLambda <= 0.0) {
+            baseLambda = 1e-4;
+        }
+        
+        double minLog = Math.log10(baseLambda) - 3.0;
+        double maxLog = Math.log10(baseLambda) + 3.0;
+        int steps = 50;
+        
+        for (int i = 0; i <= steps; i++) {
+            double logVal = minLog + (maxLog - minLog) * i / steps;
+            double l = Math.pow(10, logVal);
+            double[] trajectory = optimizer.optimize(
+                    request.totalShares(), request.numSteps(), request.stepVolatility(),
+                    l, request.eta(), request.gamma(), tau
+            );
+            
+            double expectedShortfall = 0.0;
+            double sumSqHoldings = 0.0;
+            double totalShares = trajectory[0];
+            int numSteps = trajectory.length - 1;
+            
+            for (int j = 1; j <= numSteps; j++) {
+                double t_j = trajectory[j - 1] - trajectory[j];
+                double x_j = trajectory[j];
+                expectedShortfall += t_j * (request.gamma() * (totalShares - x_j) + request.eta() * (t_j / tau));
+                
+                double x_prev = trajectory[j - 1];
+                sumSqHoldings += x_prev * x_prev;
+            }
+            
+            double variance = request.stepVolatility() * request.stepVolatility() * tau * sumSqHoldings;
+            double stdDev = Math.sqrt(variance);
+            
+            frontier.add(new FrontierPoint(l, expectedShortfall, stdDev));
+        }
+        return frontier;
     }
 
     @PostMapping("/report")

@@ -45,12 +45,15 @@ class PortfolioSimulationControllerTest {
                 .andExpect(jsonPath("$.trajectories").isArray())
                 .andExpect(jsonPath("$.correlatedResult.expectedShortfall").isNumber())
                 .andExpect(jsonPath("$.uncorrelatedResult.expectedShortfall").isNumber())
-                .andExpect(jsonPath("$.diversificationBenefit").isNumber());
+                .andExpect(jsonPath("$.diversificationBenefit").isNumber())
+                .andExpect(jsonPath("$.optimizationTimeNs").isNumber())
+                .andExpect(jsonPath("$.simulationTimeNs").isNumber())
+                .andExpect(jsonPath("$.totalTimeNs").isNumber());
     }
 
     @Test
     void shouldRepairPortfolioSimulationOnNonPositiveDefiniteCorrelation() throws Exception {
-        // A correlation matrix with very high off-diagonals that is invalid / not positive-definite
+        
         String requestJson = """
             {
                 "initialPrices": [100.0, 150.0, 80.0],
@@ -74,7 +77,10 @@ class PortfolioSimulationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.correlationRepaired").value(true))
                 .andExpect(jsonPath("$.repairedCorrelationMatrix").isArray())
-                .andExpect(jsonPath("$.repairedCorrelationMatrix[0][1]").isNumber());
+                .andExpect(jsonPath("$.repairedCorrelationMatrix[0][1]").isNumber())
+                .andExpect(jsonPath("$.optimizationTimeNs").isNumber())
+                .andExpect(jsonPath("$.simulationTimeNs").isNumber())
+                .andExpect(jsonPath("$.totalTimeNs").isNumber());
     }
 
     @Test

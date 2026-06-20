@@ -15,6 +15,11 @@ Built with modern **Java 23**, utilizing **Project Loom Virtual Threads** for ma
   - Full 3x3 Correlation Matrix input that dynamically solves for Cholesky factorizations.
   - Interactive charts plotting holding decay schedules and correlated vs. uncorrelated shortfall standard deviation.
   - Live indicators highlighting either a **Diversification Benefit** (risk reduction) or a **Diversification Penalty** (risk increase due to positive covariance).
+  - **Performance Profiling Footnote:** Integrated directly into the terminal footer, detailing millisecond-level breakdowns: Java optimizer, Rust SIMD simulator (via Panama FFM), JVM marshalling overhead, DOM paint, and AI report latency.
+* **Interactive Efficient Frontier Visualizer (Main Terminal `/`):**
+  - Exposes a post-calculation `EFFICIENT FRONTIER <Go>` button to plot the continuous Cost-Risk efficient frontier.
+  - Calculates curve coordinates analytically to eliminate Monte Carlo noise, scaling the risk-aversion ($\lambda$) range dynamically around active parameters.
+  - Overlays your current Optimal AC, TWAP, and VWAP strategies directly onto the curve as thin minimalist `X` markers to illustrate Pareto efficiency.
 * **SIMD Matrix Math (Java Vector API):** Vectorizes matrix-vector operations ($\mathbf{Y} = \mathbf{L}\mathbf{Z}$) inside CPU AVX/NEON registers using the new `jdk.incubator.vector` module.
   - *Apple Silicon NEON Fix:* Automatically pads correlation/Cholesky matrices to the nearest multiple of the vector width (lanes = 2 for doubles) to avoid hardware index out-of-bound errors.
   - *Zero GC Allocation:* Hot loops are 100% allocation-free by pre-allocating padded buffers outside step loops.

@@ -8,6 +8,10 @@ public record PortfolioSimulationResponse(
         ExecutionResult uncorrelatedResult,
         double diversificationBenefit,
         double[][] repairedCorrelationMatrix,
-        boolean correlationRepaired
+        boolean correlationRepaired,
+        long optimizationTimeNs,
+        long simulationTimeNs,
+        long totalTimeNs
 ) {}
+
 

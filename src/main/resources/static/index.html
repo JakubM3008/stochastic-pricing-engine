@@ -17,12 +17,12 @@
             --border-color: #333333;
             --border-color-hover: #555555;
             --border-color-focus: #ffa500;
-            --accent-primary: #ffa500; /* Bloomberg Amber/Orange */
-            --accent-optimal: #00ff00; /* Terminal Green */
-            --accent-twap: #ffff00; /* Yellow */
-            --accent-vwap: #00ffff; /* Cyan */
-            --text-main: #ffffff; /* White */
-            --text-muted: #888888; /* Gray */
+            --accent-primary: #ffa500; 
+            --accent-optimal: #00ff00; 
+            --accent-twap: #ffff00; 
+            --accent-vwap: #00ffff; 
+            --text-main: #ffffff; 
+            --text-muted: #888888; 
             --input-bg: #000000;
         }
 
@@ -30,8 +30,8 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            border-radius: 0 !important; /* Zero roundness anywhere */
-            box-shadow: none !important; /* No modern soft shadows */
+            border-radius: 0 !important; 
+            box-shadow: none !important; 
         }
 
         body {
@@ -47,7 +47,7 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Layout Container */
+        
         .container {
             max-width: 100%;
             padding: 0.75rem;
@@ -57,7 +57,7 @@
             flex: 1;
         }
 
-        /* Terminal Top Bar */
+        
         .terminal-topbar {
             background-color: #111111;
             border-bottom: 1px solid var(--border-color);
@@ -86,7 +86,7 @@
             text-decoration: underline;
         }
 
-        /* Dashboard Grid Layout */
+        
         .dashboard-grid {
             display: grid;
             grid-template-columns: 340px 1fr;
@@ -100,7 +100,7 @@
             }
         }
 
-        /* Flat Terminal Panels */
+        
         .panel {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
@@ -127,7 +127,7 @@
             color: var(--accent-primary);
         }
 
-        /* Form elements */
+        
         .form-group {
             margin-bottom: 0.75rem;
         }
@@ -157,7 +157,7 @@
             color: var(--accent-primary);
         }
 
-        /* Suggested range inline feedback */
+        
         .suggested-range {
             font-size: 9px;
             color: var(--accent-primary);
@@ -170,7 +170,7 @@
             display: block;
         }
 
-        /* Segmented volume profile grid */
+        
         .profile-segments {
             display: flex;
             border: 1px solid var(--border-color);
@@ -224,7 +224,7 @@
             margin: 0;
         }
 
-        /* Terminal Style Action Buttons */
+        
         .btn {
             display: block;
             width: 100%;
@@ -275,7 +275,7 @@
             color: var(--text-muted);
         }
 
-        /* Monospace ASCII Loading Animations */
+        
         .loading {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -288,7 +288,7 @@
             pointer-events: none;
             border: 1px solid var(--border-color);
             will-change: opacity, transform;
-            transform: translate3d(0, 0, 0); /* Dedicated GPU compositor layer */
+            transform: translate3d(0, 0, 0); 
         }
 
         .loading.active {
@@ -303,7 +303,7 @@
             75% { content: "[ / ] CALCULATING SCHEDULERS..."; }
         }
         
-        /* Active scoped animation to prevent background GPU/CPU cycle leakage */
+        
         .loading.active .terminal-spinner::after {
             content: "[ - ] CALCULATING SCHEDULERS...";
             animation: terminal-loading 0.8s steps(4) infinite;
@@ -328,7 +328,7 @@
             font-weight: bold;
         }
 
-        /* High-Density Charts Layout */
+        
         .charts-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -353,7 +353,7 @@
             will-change: transform;
         }
 
-        /* Monospace Grid Tables */
+        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -393,7 +393,7 @@
         .twap-cell { color: var(--accent-twap); font-weight: 700; }
         .vwap-cell { color: var(--accent-vwap); font-weight: 700; }
 
-        /* Custom Toggle Switch Bracket [X]/[ ] styling */
+        
         .terminal-toggle {
             display: inline-flex;
             align-items: center;
@@ -419,14 +419,14 @@
             color: var(--accent-optimal);
         }
 
-        /* Quant Report Container (CRT console styling) */
+        
         .report-box {
             background: #000000;
             border: 1px solid var(--border-color);
             padding: 0.75rem;
             font-family: 'JetBrains Mono', monospace;
             line-height: 1.5;
-            color: var(--accent-optimal); /* Green screen printout style */
+            color: var(--accent-optimal); 
             font-size: 11px;
             white-space: pre-wrap;
             contain: content;
@@ -439,7 +439,7 @@
             text-transform: uppercase;
             margin-top: 0.75rem;
             margin-bottom: 0.25rem;
-            color: var(--accent-twap); /* Yellow titles */
+            color: var(--accent-twap); 
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 0.1rem;
         }
@@ -474,7 +474,7 @@
             font-weight: 700;
         }
 
-        /* Documentation Modal Overlay */
+        
         #helpModal {
             display: none;
             position: fixed;
@@ -500,7 +500,7 @@
             z-index: 99;
         }
 
-        /* Terminal Footer Status Bar */
+        
         .terminal-footer {
             background-color: #111111;
             border-top: 1px solid var(--border-color);
@@ -622,6 +622,7 @@
                 </div>
 
                 <button type="submit" class="btn">EXECUTE &lt;Go&gt;</button>
+                <button type="button" id="frontierBtn" class="btn" style="display: none; border-color: var(--accent-primary); color: var(--accent-primary); margin-top: 0.5rem;">EFFICIENT FRONTIER &lt;Go&gt;</button>
             </form>
 
             <!-- Right side content -->
@@ -704,6 +705,16 @@
                     </div>
                     <div class="report-box" id="reportContent">Configure simulation boundaries and run the execution benchmark to trigger the report.</div>
                 </div>
+
+                <div class="panel" id="frontierPanel" style="display: none; position: relative;">
+                    <div class="panel-header">
+                        <span class="panel-title">5 &lt;Go&gt; Efficient Frontier (Cost vs Risk)</span>
+                    </div>
+                    <div style="font-size: 10px; font-weight: bold; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">Efficient Frontier Curve</div>
+                    <div class="chart-box" style="height: 300px;">
+                        <canvas id="frontierChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -737,46 +748,14 @@
     </div>
 
     <script>
-        /*
-         * WIRE CONTRACT MAPPING (Java DTO Models <=> JavaScript Objects)
-         *
-         * Java DTO: com.quant.pricing.controller.SimulationController.SimulationRequest
-         * export interface SimulationRequest {
-         *   initialPrice: number;    // Maps from Java double (USD)
-         *   totalShares: number;     // Maps from Java double
-         *   numSteps: number;        // Maps from Java int
-         *   stepVolatility: number;  // Maps from Java double (sigma per step)
-         *   eta: number;             // Maps from Java double (Temporary impact)
-         *   gamma: number;           // Maps from Java double (Permanent impact)
-         *   lambda: number;          // Maps from Java double (Risk aversion)
-         *   volumeProfile: number[]; // Maps from Java double[] (Percentage profile)
-         * }
-         *
-         * Java DTO: com.quant.pricing.controller.SimulationController.SimulationResponse
-         * export interface SimulationResponse {
-         *   optimalTrajectory: number[];
-         *   twapTrajectory: number[];
-         *   vwapTrajectory: number[];
-         *   optimalResult: ExecutionResult;
-         *   twapResult: ExecutionResult;
-         *   vwapResult: ExecutionResult;
-         *   reportMarkdown: string | null;
-         * }
-         *
-         * Java DTO: com.quant.pricing.domain.ExecutionResult
-         * export interface ExecutionResult {
-         *   expectedShortfall: number;          // Maps from Java double
-         *   shortfallVariance: number;           // Maps from Java double
-         *   shortfallStandardDeviation: number;  // Maps from Java double
-         * }
-         */
+        
 
         const isDemo = new URLSearchParams(window.location.search).has('demo');
         if (isDemo) {
             document.body.classList.add('demo-active');
         }
 
-        // Target text fields directly (no slider handles)
+        
         const stepVolInput = document.getElementById('volInput');
         const lambdaInputText = document.getElementById('lambdaInputText');
 
@@ -794,11 +773,12 @@
             updateSuggestedRanges();
         });
 
-        // Initialize Chart.js Chart instances
+        
         let trajectoryChart = null;
         let varianceChart = null;
+        let lastSimulationData = null;
 
-        // Strict Retro Monospace style overrides for Chart.js
+        
         Chart.defaults.font.family = "'JetBrains Mono', Courier, monospace";
         Chart.defaults.color = "#888888";
         Chart.defaults.plugins.tooltip.backgroundColor = "#000000";
@@ -807,7 +787,7 @@
         Chart.defaults.plugins.tooltip.titleColor = "#ffffff";
         Chart.defaults.plugins.tooltip.bodyColor = "#ffffff";
         Chart.defaults.plugins.tooltip.padding = 6;
-        Chart.defaults.plugins.tooltip.cornerRadius = 0; /* Square tooltips */
+        Chart.defaults.plugins.tooltip.cornerRadius = 0; 
 
         function initializeCharts() {
             const ctx1 = document.getElementById('trajectoryChart').getContext('2d');
@@ -826,7 +806,7 @@
                             borderWidth: 2,
                             pointBackgroundColor: '#00ff00',
                             pointHoverRadius: 5,
-                            tension: 0 /* Strictly straight line segments */
+                            tension: 0 
                         },
                         { 
                             label: 'TWAP', 
@@ -904,7 +884,7 @@
                             backgroundColor: '#00ff00', 
                             hoverBackgroundColor: '#00cc00',
                             data: [],
-                            borderRadius: 0, /* Flat square bars */
+                            borderRadius: 0, 
                             borderSkipped: false
                         },
                         { 
@@ -965,11 +945,13 @@
             });
         }
 
-        // Form Submit Handler (Triggers REST API post)
         document.getElementById('simForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const loader = document.getElementById('loader');
             loader.classList.add('active');
+
+            document.getElementById('frontierBtn').style.display = 'none';
+            document.getElementById('frontierPanel').style.display = 'none';
 
             const reportContent = document.getElementById('reportContent');
             const liveAI = document.getElementById('aiToggle').checked;
@@ -988,11 +970,9 @@
                 `;
             }
 
-            // Read parameters directly from input fields
             const stepVolValue = parseFloat(stepVolInput.value);
             const lambda = parseFloat(lambdaInputText.value);
 
-            // Read volume profile elements dynamically and convert to fractions
             const volumeInputs = document.querySelectorAll('.profile-segments input');
             const volumeProfile = [];
             volumeInputs.forEach(input => {
@@ -1012,7 +992,6 @@
             };
 
             try {
-                // Fetch fast simulation metrics first
                 const response = await fetch('/api/simulate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1025,12 +1004,12 @@
                 }
 
                 const data = await response.json();
-                updateUI(data); // Instantly updates tables and graphs
+                lastSimulationData = data;
+                updateUI(data);
                 
-                // Release the main loader overlay immediately
+                document.getElementById('frontierBtn').style.display = 'block';
                 loader.classList.remove('active');
 
-                // Trigger background fetch for the report
                 const bypassAI = !document.getElementById('aiToggle').checked;
                 const reportPayload = {
                     request: requestPayload,
@@ -1063,9 +1042,9 @@
             }
         });
 
-        // Map server response fields to DOM and Chart datasets
+        
         function updateUI(data) {
-            // Update tables
+            
             document.getElementById('optES').textContent = formatCurrency(data.optimalResult.expectedShortfall);
             document.getElementById('optSD').textContent = formatCurrency(data.optimalResult.shortfallStandardDeviation);
             document.getElementById('optVar').textContent = formatCurrency(data.optimalResult.shortfallVariance);
@@ -1078,7 +1057,7 @@
             document.getElementById('vwapSD').textContent = formatCurrency(data.vwapResult.shortfallStandardDeviation);
             document.getElementById('vwapVar').textContent = formatCurrency(data.vwapResult.shortfallVariance);
 
-            // Update Trajectory Chart and its labels
+            
             const numSteps = data.optimalTrajectory.length - 1;
             const newLabels = ['Start'];
             for (let i = 1; i <= numSteps; i++) {
@@ -1091,7 +1070,7 @@
             trajectoryChart.data.datasets[2].data = data.vwapTrajectory;
             trajectoryChart.update();
 
-            // Update Cost-Risk Bar Chart
+            
             varianceChart.data.datasets[0].data = [data.optimalResult.expectedShortfall, data.optimalResult.shortfallStandardDeviation];
             varianceChart.data.datasets[1].data = [data.twapResult.expectedShortfall, data.twapResult.shortfallStandardDeviation];
             varianceChart.data.datasets[2].data = [data.vwapResult.expectedShortfall, data.vwapResult.shortfallStandardDeviation];
@@ -1109,24 +1088,24 @@
                 return;
             }
             
-            // Basic markdown string parser for formatting report cards
+            
             let html = mdText
                 .replace(/^### (.*$)/gim, '<h3>$1</h3>')
                 .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/gim, '<em>$1</em>')
                 .replace(/^\* (.*$)/gim, '<li>$1</li>');
             
-            // Wrap bullet lists
+            
             if (html.includes('<li>')) {
                 html = html.replace(/(<li>.*<\/li>)/sim, '<ul>$1</ul>');
             }
             container.innerHTML = html;
         }
 
-        // On window load
+        
         initializeCharts();
         
-        // Format eta on change
+        
         const etaInput = document.getElementById('eta');
         etaInput.addEventListener('change', (e) => {
             let val = parseFloat(e.target.value);
@@ -1135,7 +1114,7 @@
             updateSuggestedRanges();
         });
 
-        // Format gamma on change
+        
         const gammaInput = document.getElementById('gamma');
         gammaInput.addEventListener('change', (e) => {
             let val = parseFloat(e.target.value);
@@ -1144,7 +1123,7 @@
             updateSuggestedRanges();
         });
 
-        // Listeners for remaining inputs to trigger suggestions recalculation
+        
         const otherInputs = ['totalShares', 'initialPrice', 'eta', 'gamma'];
         otherInputs.forEach(id => {
             document.getElementById(id).addEventListener('input', updateSuggestedRanges);
@@ -1160,41 +1139,41 @@
             const lambda = parseFloat(lambdaInputText.value) || 1e-4;
             const eta = parseFloat(document.getElementById('eta').value) || 1e-5;
 
-            // 1. Total Shares
+            
             const sharesMin = Math.round(500000 / price);
             const sharesMax = Math.round(50000000 / price);
             document.getElementById('range-totalShares').textContent = 
                 `Suggested: ${sharesMin.toLocaleString()} – ${sharesMax.toLocaleString()} shares`;
 
-            // 2. Initial Price
+            
             const priceMin = Math.max(0.01, 100000 / shares);
             const priceMax = 100000000 / shares;
             document.getElementById('range-initialPrice').textContent = 
                 `Suggested: $${priceMin.toFixed(2)} – $${priceMax.toFixed(2)}`;
 
-            // 3. Volatility
+            
             document.getElementById('range-volatility').textContent = "Suggested: 0.05 – 0.60";
 
-            // 4. Lambda (Risk Aversion)
+            
             const lamMin = (0.01 * eta) / (vol * vol);
             const lamMax = (4.0 * eta) / (vol * vol);
             document.getElementById('range-lambda').textContent = 
                 `Suggested: ${lamMin.toExponential(2)} – ${lamMax.toExponential(2)}`;
 
-            // 5. Temporary Impact (eta)
+            
             const etaMin = (vol * vol * lambda) / 4.0;
             const etaMax = (vol * vol * lambda) / 0.01;
             document.getElementById('range-eta').textContent = 
                 `Suggested: ${etaMin.toExponential(2)} – ${etaMax.toExponential(2)}`;
 
-            // 6. Permanent Impact (gamma)
+            
             const gamMin = 0.01 * eta;
             const gamMax = 0.5 * eta;
             document.getElementById('range-gamma').textContent = 
                 `Suggested: ${gamMin.toExponential(2)} – ${gamMax.toExponential(2)}`;
         }
 
-        // Listeners for time window changes
+        
         document.getElementById('startTime').addEventListener('change', updateVolumeProfileBins);
         document.getElementById('endTime').addEventListener('change', updateVolumeProfileBins);
 
@@ -1270,7 +1249,7 @@
                 trajectoryChart.update();
             }
 
-            // Bind listeners for dynamic validation
+            
             const volumeInputs = document.querySelectorAll('.profile-segments input');
             volumeInputs.forEach(input => {
                 input.addEventListener('input', validateVolumeProfile);
@@ -1350,7 +1329,7 @@
 
         document.getElementById('randomiseProfileBtn').addEventListener('click', randomizeVolumeProfile);
 
-        // Form state persistence
+        
         const formEl = document.getElementById('simForm');
         formEl.addEventListener('input', saveInputState);
         formEl.addEventListener('change', saveInputState);
@@ -1399,10 +1378,10 @@
                 document.getElementById('endTime').value = endTime;
             }
 
-            // Generate bins based on restored times first
+            
             updateVolumeProfileBins();
 
-            // Restore basic inputs
+            
             const fields = ['totalShares', 'initialPrice', 'volInput', 'eta', 'gamma'];
             fields.forEach(id => {
                 try {
@@ -1413,7 +1392,7 @@
                 } catch (e) {}
             });
 
-            // Restore lambda text directly
+            
             try {
                 const savedLambdaText = localStorage.getItem('lambdaInputText');
                 if (savedLambdaText !== null) {
@@ -1421,7 +1400,7 @@
                 }
             } catch (e) {}
 
-            // Restore volume profile segments
+            
             try {
                 const savedProfileStr = localStorage.getItem('volumeProfile');
                 if (savedProfileStr) {
@@ -1437,7 +1416,7 @@
                 console.error("Failed to parse saved volume profile", e);
             }
 
-            // Restore AI toggle
+            
             try {
                 const savedToggle = localStorage.getItem('aiToggle');
                 if (savedToggle !== null) {
@@ -1445,12 +1424,12 @@
                 }
             } catch (e) {}
 
-            // Re-run validation and range calculations
+            
             validateVolumeProfile();
             updateSuggestedRanges();
         }
 
-        // Toggle Documentation Modal Panel
+        
         function toggleHelp() {
             const modal = document.getElementById('helpModal');
             const overlay = document.getElementById('helpOverlay');
@@ -1463,7 +1442,7 @@
             }
         }
 
-        // Reset all simulation fields back to original values
+        
         function resetParameters() {
             if (confirm("CONFIRM SYSTEM RESET: CLEAR ALL SAVED TERMINAL STATE?")) {
                 try {
@@ -1473,7 +1452,7 @@
             }
         }
 
-        // Terminal Keyboard Hotkeys Listener
+        
         window.addEventListener('keydown', (e) => {
             if (e.key === 'F1') {
                 e.preventDefault();
@@ -1490,6 +1469,243 @@
             } else if (e.key === 'F5') {
                 e.preventDefault();
                 window.location.href = '/portfolio';
+            }
+        });
+
+        let frontierChart = null;
+
+        function calculateAnalyticalMetrics(trajectory, eta, gamma, stepVolatility) {
+            const totalShares = trajectory[0];
+            const numSteps = trajectory.length - 1;
+            const tau = 1.0;
+            let expectedShortfall = 0.0;
+            let sumSqHoldings = 0.0;
+            for (let j = 1; j <= numSteps; j++) {
+                const t_j = trajectory[j - 1] - trajectory[j];
+                const x_j = trajectory[j];
+                expectedShortfall += t_j * (gamma * (totalShares - x_j) + eta * (t_j / tau));
+                const x_prev = trajectory[j - 1];
+                sumSqHoldings += x_prev * x_prev;
+            }
+            const variance = stepVolatility * stepVolatility * tau * sumSqHoldings;
+            return {
+                expectedShortfall,
+                shortfallStandardDeviation: Math.sqrt(variance)
+            };
+        }
+
+        function renderFrontier(dataPoints, current) {
+            const ctx = document.getElementById('frontierChart').getContext('2d');
+            const sortedData = dataPoints.map(p => ({
+                x: p.shortfallStandardDeviation,
+                y: p.expectedShortfall,
+                lambda: p.lambda
+            })).sort((a, b) => a.x - b.x);
+
+            const datasets = [
+                {
+                    label: 'Efficient Frontier',
+                    borderColor: '#ffa500',
+                    backgroundColor: 'rgba(255, 165, 0, 0.05)',
+                    data: sortedData,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    showLine: true,
+                    tension: 0.1,
+                    order: 2
+                }
+            ];
+
+            if (current) {
+                datasets.push({
+                    label: 'Your Optimal AC',
+                    borderColor: '#00ff00',
+                    backgroundColor: 'transparent',
+                    data: [{ x: current.optimalSD, y: current.optimalES }],
+                    pointStyle: 'crossRot',
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    borderWidth: 1.5,
+                    showLine: false,
+                    order: 1
+                });
+                datasets.push({
+                    label: 'Your TWAP',
+                    borderColor: '#ffff00',
+                    backgroundColor: 'transparent',
+                    data: [{ x: current.twapSD, y: current.twapES }],
+                    pointStyle: 'crossRot',
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    borderWidth: 1.5,
+                    showLine: false,
+                    order: 1
+                });
+                datasets.push({
+                    label: 'Your VWAP',
+                    borderColor: '#00ffff',
+                    backgroundColor: 'transparent',
+                    data: [{ x: current.vwapSD, y: current.vwapES }],
+                    pointStyle: 'crossRot',
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    borderWidth: 1.5,
+                    showLine: false,
+                    order: 1
+                });
+            }
+
+            if (frontierChart) {
+                frontierChart.data.datasets = datasets;
+                frontierChart.update();
+                return;
+            }
+
+            frontierChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Volatility Risk (Standard Deviation of Shortfall)',
+                                color: '#ffffff',
+                                font: { family: "'JetBrains Mono', monospace", size: 10 }
+                            },
+                            ticks: {
+                                color: '#888888',
+                                font: { family: "'JetBrains Mono', monospace", size: 9 },
+                                callback: function(value) {
+                                    if (value >= 1e6) return '$' + (value / 1e6).toFixed(1) + 'M';
+                                    if (value >= 1e3) return '$' + (value / 1e3).toFixed(0) + 'k';
+                                    return '$' + value;
+                                }
+                            },
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        },
+                        y: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Expected Shortfall Cost (USD)',
+                                color: '#ffffff',
+                                font: { family: "'JetBrains Mono', monospace", size: 10 }
+                            },
+                            ticks: {
+                                color: '#888888',
+                                font: { family: "'JetBrains Mono', monospace", size: 9 },
+                                callback: function(value) {
+                                    if (value >= 1e6) return '$' + (value / 1e6).toFixed(1) + 'M';
+                                    if (value >= 1e3) return '$' + (value / 1e3).toFixed(0) + 'k';
+                                    return '$' + value;
+                                }
+                            },
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const pt = context.raw;
+                                    if (context.datasetIndex === 0) {
+                                        return `Cost: ${formatCurrency(pt.y)} | Risk: ${formatCurrency(pt.x)} | Lambda: ${pt.lambda.toExponential(2)}`;
+                                    }
+                                    return `${context.dataset.label} -> Cost: ${formatCurrency(pt.y)} | Risk: ${formatCurrency(pt.x)}`;
+                                }
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'end',
+                            labels: {
+                                color: '#ffffff',
+                                boxWidth: 10,
+                                usePointStyle: true,
+                                font: { size: 9 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        document.getElementById('frontierBtn').addEventListener('click', async () => {
+            const panel = document.getElementById('frontierPanel');
+            if (panel.style.display === 'block') {
+                panel.style.display = 'none';
+                return;
+            }
+
+            const stepVolValue = parseFloat(stepVolInput.value);
+            const lambda = parseFloat(lambdaInputText.value);
+            const volumeInputs = document.querySelectorAll('.profile-segments input');
+            const volumeProfile = [];
+            volumeInputs.forEach(input => {
+                volumeProfile.push((parseFloat(input.value) || 0) / 100.0);
+            });
+            const numSteps = volumeProfile.length;
+
+            const requestPayload = {
+                initialPrice: parseFloat(document.getElementById('initialPrice').value),
+                totalShares: parseFloat(document.getElementById('totalShares').value),
+                numSteps: numSteps,
+                stepVolatility: stepVolValue,
+                eta: parseFloat(document.getElementById('eta').value),
+                gamma: parseFloat(document.getElementById('gamma').value),
+                lambda: lambda,
+                volumeProfile: volumeProfile
+            };
+
+            const loader = document.getElementById('loader');
+            loader.classList.add('active');
+
+            try {
+                const response = await fetch('/api/frontier', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestPayload)
+                });
+
+                if (!response.ok) {
+                    const errMsg = await response.text();
+                    throw new Error(errMsg);
+                }
+
+                const data = await response.json();
+                panel.style.display = 'block';
+
+                let currentResults = null;
+                if (lastSimulationData) {
+                    const etaVal = parseFloat(document.getElementById('eta').value);
+                    const gammaVal = parseFloat(document.getElementById('gamma').value);
+                    
+                    const optAnal = calculateAnalyticalMetrics(lastSimulationData.optimalTrajectory, etaVal, gammaVal, stepVolValue);
+                    const twapAnal = calculateAnalyticalMetrics(lastSimulationData.twapTrajectory, etaVal, gammaVal, stepVolValue);
+                    const vwapAnal = calculateAnalyticalMetrics(lastSimulationData.vwapTrajectory, etaVal, gammaVal, stepVolValue);
+                    
+                    currentResults = {
+                        optimalES: optAnal.expectedShortfall,
+                        optimalSD: optAnal.shortfallStandardDeviation,
+                        twapES: twapAnal.expectedShortfall,
+                        twapSD: twapAnal.shortfallStandardDeviation,
+                        vwapES: vwapAnal.expectedShortfall,
+                        vwapSD: vwapAnal.shortfallStandardDeviation
+                    };
+                }
+
+                renderFrontier(data, currentResults);
+            } catch (err) {
+                alert("FRONTIER GENERATION FAILED: " + err.message);
+            } finally {
+                loader.classList.remove('active');
             }
         });
 
