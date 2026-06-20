@@ -70,9 +70,16 @@ public class SimulationController {
     public List<FrontierPoint> getFrontier(@RequestBody SimulationRequest request) {
         double tau = 1.0;
         List<FrontierPoint> frontier = new ArrayList<>();
-        double minLog = -8.0;
-        double maxLog = -1.0;
+        
+        double baseLambda = request.lambda();
+        if (baseLambda <= 0.0) {
+            baseLambda = 1e-4;
+        }
+        
+        double minLog = Math.log10(baseLambda) - 3.0;
+        double maxLog = Math.log10(baseLambda) + 3.0;
         int steps = 50;
+        
         for (int i = 0; i <= steps; i++) {
             double logVal = minLog + (maxLog - minLog) * i / steps;
             double l = Math.pow(10, logVal);
