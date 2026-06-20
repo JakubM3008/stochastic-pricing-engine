@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stochastic Execution Simulator [AC_SIM]</title>
+    <title>Stochastic Execution Simulator [AC_SIM_DYNAMIC]</title>
     <!-- Google Fonts: JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -155,19 +155,6 @@
             outline: none;
             border-color: var(--border-color-focus);
             color: var(--accent-primary);
-        }
-
-        /* Suggested range inline feedback */
-        .suggested-range {
-            font-size: 9px;
-            color: var(--accent-primary);
-            margin-top: 0.15rem;
-            font-family: 'JetBrains Mono', monospace;
-            display: none;
-        }
-
-        body.demo-active .suggested-range {
-            display: block;
         }
 
         /* Segmented volume profile grid */
@@ -518,12 +505,12 @@
 
     <!-- Bloomberg Top Bar -->
     <div class="terminal-topbar">
-        <div>AC_SIM &lt;Go&gt;   ALMGREN-CHRISS RISK TERMINAL</div>
+        <div>AC_SIM &lt;Go&gt;   ALMGREN-CHRISS RISK TERMINAL [DYNAMIC]</div>
         <div class="terminal-topbar-links">
             <span onclick="toggleHelp()">F1:HELP</span>
             <span onclick="resetParameters()">F2:RESET</span>
             <span onclick="randomizeVolumeProfile()">F3:RANDOMISE</span>
-            <span onclick="window.location.href='/dynamic'">F4:DYNAMIC</span>
+            <span onclick="window.location.href='/'">F4:STANDARD</span>
             <span onclick="window.location.href='/portfolio'">F5:PORTFOLIO</span>
             <span style="color: var(--accent-optimal);">STATUS: ONLINE</span>
         </div>
@@ -540,38 +527,50 @@
 
                 <div class="form-group">
                     <label for="totalShares">Total Shares to Liquidate</label>
-                    <input type="number" id="totalShares" value="1000000" min="1000" step="1000">
-                    <div class="suggested-range" id="range-totalShares"></div>
+                    <input type="number" id="totalShares" value="500000" min="1000" step="1000">
                 </div>
 
                 <div class="form-group">
                     <label for="initialPrice">Initial Price (USD)</label>
-                    <input type="number" id="initialPrice" value="100.00" min="0.01" step="0.01">
-                    <div class="suggested-range" id="range-initialPrice"></div>
+                    <input type="number" id="initialPrice" value="1.50" min="0.01" step="0.01">
                 </div>
 
                 <div class="form-group">
                     <label for="volInput">Volatility per Step</label>
-                    <input type="text" id="volInput" value="0.30">
-                    <div class="suggested-range" id="range-volatility"></div>
+                    <input type="text" id="volInput" value="0.1000">
                 </div>
 
                 <div class="form-group">
                     <label for="lambdaInputText">Risk Aversion (&lambda;)</label>
-                    <input type="text" id="lambdaInputText" value="1.00e-4">
-                    <div class="suggested-range" id="range-lambda"></div>
+                    <input type="text" id="lambdaInputText" value="1.2346e-7">
                 </div>
 
                 <div class="form-group">
-                    <label for="eta">Temporary Impact (&eta;)</label>
-                    <input type="text" id="eta" value="1.00e-5">
-                    <div class="suggested-range" id="range-eta"></div>
+                    <label for="adv">Average Daily Volume (ADV)</label>
+                    <input type="number" id="adv" value="5000000" min="10000" step="10000">
                 </div>
 
                 <div class="form-group">
-                    <label for="gamma">Permanent Impact (&gamma;)</label>
-                    <input type="text" id="gamma" value="1.00e-6">
-                    <div class="suggested-range" id="range-gamma"></div>
+                    <label for="yFactor">Impact Scaling (Y)</label>
+                    <input type="number" id="yFactor" value="0.60" min="0.01" max="5.0" step="0.01">
+                </div>
+
+                <div class="form-group">
+                    <label for="cFactor">Permanent Fraction (C)</label>
+                    <input type="number" id="cFactor" value="0.50" min="0.01" max="2.0" step="0.01">
+                </div>
+
+                <!-- Display calculated eta & gamma -->
+                <div class="form-group" style="border: 1px solid var(--border-color); padding: 0.5rem; background: #111111; margin-top: 1rem;">
+                    <div style="font-size: 9px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem;">Calibrated Parameters (Square-Root Law)</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                        <span>CALCULATED &eta;:</span>
+                        <span id="calcEta" style="color: var(--accent-optimal); font-weight: bold;">—</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 0.15rem;">
+                        <span>CALCULATED &gamma;:</span>
+                        <span id="calcGamma" style="color: var(--accent-optimal); font-weight: bold;">—</span>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -583,11 +582,11 @@
                         </div>
                         <div style="flex: 1;">
                             <label style="font-size: 9px; color: var(--text-muted); margin-bottom: 0.15rem;">End Time</label>
-                            <input type="time" id="endTime" value="12:00" step="1800">
+                            <input type="time" id="endTime" value="16:30" step="1800">
                         </div>
                     </div>
                     <div id="timeWindowInfo" style="font-size: 9px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
-                        Duration: 2.5 hours (5 bins of 30 min)
+                        Duration: 7.0 hours (14 bins of 30 min)
                     </div>
                 </div>
 
@@ -597,26 +596,7 @@
                         <button type="button" id="randomiseProfileBtn" class="sec-btn" style="font-size: 9px; padding: 0.05rem 0.25rem;">Randomise</button>
                     </div>
                     <div class="profile-segments">
-                        <div class="segment-field">
-                            <span class="segment-label">S1</span>
-                            <input type="number" id="p1" value="35.00" min="0" max="100" step="0.01">
-                        </div>
-                        <div class="segment-field">
-                            <span class="segment-label">S2</span>
-                            <input type="number" id="p2" value="15.00" min="0" max="100" step="0.01">
-                        </div>
-                        <div class="segment-field">
-                            <span class="segment-label">S3</span>
-                            <input type="number" id="p3" value="10.00" min="0" max="100" step="0.01">
-                        </div>
-                        <div class="segment-field">
-                            <span class="segment-label">S4</span>
-                            <input type="number" id="p4" value="15.00" min="0" max="100" step="0.01">
-                        </div>
-                        <div class="segment-field">
-                            <span class="segment-label">S5</span>
-                            <input type="number" id="p5" value="25.00" min="0" max="100" step="0.01">
-                        </div>
+                        <!-- Filled dynamically -->
                     </div>
                     <div id="profileWarning" style="color: #ff3333; font-size: 9px; margin-top: 0.25rem; font-family: 'JetBrains Mono', monospace; display: none;"></div>
                 </div>
@@ -720,10 +700,10 @@
             <p style="margin-bottom: 0.5rem;"><strong>INITIAL PRICE:</strong> Initial mid-market price of the asset in USD.</p>
             <p style="margin-bottom: 0.5rem;"><strong>VOLATILITY PER STEP:</strong> Forecasted asset returns standard deviation per interval step.</p>
             <p style="margin-bottom: 0.5rem;"><strong>RISK AVERSION (&lambda;):</strong> Controls trade-off between execution cost and market volatility risk. High values accelerate trade execution to secure capital, whereas low values delay execution to avoid market impact costs.</p>
-            <p style="margin-bottom: 0.5rem;"><strong>TEMPORARY IMPACT (&eta;):</strong> Price slippage impact coefficient (proportional to execution rate).</p>
-            <p style="margin-bottom: 0.5rem;"><strong>PERMANENT IMPACT (&gamma;):</strong> Permanent price degradation impact coefficient (proportional to total shares sold).</p>
-            <p style="margin-bottom: 0.5rem;"><strong>LIQUIDATION TIME WINDOW:</strong> Total active trading session. Calculated intervals (bins) split the window into equal 30-minute intervals.</p>
-            <p style="margin-bottom: 0.5rem;"><strong>INTRADAY VOLUME PROFILE:</strong> Target percentage allocation of volume across the respective trading bins.</p>
+            <p style="margin-bottom: 0.5rem;"><strong>AVERAGE DAILY VOLUME (ADV):</strong> Total shares of the asset traded daily in the market. Used in the Square-Root Law to compute impact.</p>
+            <p style="margin-bottom: 0.5rem;"><strong>IMPACT SCALING (Y):</strong> Historical calibration scalar (normally between 0.5 and 0.7) for market impact.</p>
+            <p style="margin-bottom: 0.5rem;"><strong>PERMANENT FRACTION (C):</strong> Permanent impact fraction coefficient scaling the permanent slippage rate.</p>
+            <p style="margin-bottom: 0.5rem;"><strong>LIQUIDATION TIME WINDOW:</strong> Total active trading session. Bins split the window into equal 30-minute intervals.</p>
         </div>
         <div style="margin-top: 1rem; text-align: right; color: var(--text-muted); font-size: 10px;">
             Press <span style="color: var(--accent-primary); font-weight: bold;">F1</span> again or click close to return to the active terminal.
@@ -771,12 +751,7 @@
          * }
          */
 
-        const isDemo = new URLSearchParams(window.location.search).has('demo');
-        if (isDemo) {
-            document.body.classList.add('demo-active');
-        }
-
-        // Target text fields directly (no slider handles)
+        // Target text fields directly
         const stepVolInput = document.getElementById('volInput');
         const lambdaInputText = document.getElementById('lambdaInputText');
 
@@ -784,15 +759,42 @@
             let val = parseFloat(e.target.value);
             if (isNaN(val) || val < 0) val = 0.01;
             stepVolInput.value = val.toFixed(4);
-            updateSuggestedRanges();
+            updateCalculatedImpacts();
         });
 
         lambdaInputText.addEventListener('change', (e) => {
             let val = parseFloat(e.target.value);
             if (isNaN(val) || val <= 0) val = 1e-4;
             lambdaInputText.value = val.toExponential(4);
-            updateSuggestedRanges();
         });
+
+        // Event listeners for recalculating eta & gamma live
+        const dynamicInputs = ['totalShares', 'volInput', 'adv', 'yFactor', 'cFactor'];
+        dynamicInputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', updateCalculatedImpacts);
+            document.getElementById(id).addEventListener('change', updateCalculatedImpacts);
+        });
+
+        function updateCalculatedImpacts() {
+            const stepVolValue = parseFloat(stepVolInput.value) || 0.1;
+            const shares = parseFloat(document.getElementById('totalShares').value) || 500000;
+            const adv = parseFloat(document.getElementById('adv').value) || 5000000;
+            const yFactor = parseFloat(document.getElementById('yFactor').value) || 0.6;
+            const cFactor = parseFloat(document.getElementById('cFactor').value) || 0.5;
+
+            const volumeInputs = document.querySelectorAll('.profile-segments input');
+            const numSteps = volumeInputs.length || 14;
+
+            // Equation: eta = Y * sigma * sqrt(N / (X0 * ADV))
+            const calculatedEta = yFactor * stepVolValue * Math.sqrt(numSteps / (shares * adv));
+            // Equation: gamma = C * sigma / ADV
+            const calculatedGamma = (cFactor * stepVolValue) / adv;
+
+            document.getElementById('calcEta').textContent = calculatedEta.toExponential(4);
+            document.getElementById('calcGamma').textContent = calculatedGamma.toExponential(4);
+
+            return { calculatedEta, calculatedGamma };
+        }
 
         // Initialize Chart.js Chart instances
         let trajectoryChart = null;
@@ -1000,13 +1002,16 @@
             });
             const numSteps = volumeProfile.length;
 
+            // Recalculate impact parameters
+            const { calculatedEta, calculatedGamma } = updateCalculatedImpacts();
+
             const requestPayload = {
                 initialPrice: parseFloat(document.getElementById('initialPrice').value),
                 totalShares: parseFloat(document.getElementById('totalShares').value),
                 numSteps: numSteps,
                 stepVolatility: stepVolValue,
-                eta: parseFloat(document.getElementById('eta').value),
-                gamma: parseFloat(document.getElementById('gamma').value),
+                eta: calculatedEta,
+                gamma: calculatedGamma,
                 lambda: lambda,
                 volumeProfile: volumeProfile
             };
@@ -1102,97 +1107,8 @@
             return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
         }
 
-        function renderReport(mdText) {
-            const container = document.getElementById('reportContent');
-            if (!mdText) {
-                container.innerHTML = "No report available.";
-                return;
-            }
-            
-            // Basic markdown string parser for formatting report cards
-            let html = mdText
-                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-                .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-                .replace(/^\* (.*$)/gim, '<li>$1</li>');
-            
-            // Wrap bullet lists
-            if (html.includes('<li>')) {
-                html = html.replace(/(<li>.*<\/li>)/sim, '<ul>$1</ul>');
-            }
-            container.innerHTML = html;
-        }
-
         // On window load
         initializeCharts();
-        
-        // Format eta on change
-        const etaInput = document.getElementById('eta');
-        etaInput.addEventListener('change', (e) => {
-            let val = parseFloat(e.target.value);
-            if (isNaN(val) || val < 0) val = 1e-5;
-            etaInput.value = val === 0 ? "0.0" : val.toExponential(2);
-            updateSuggestedRanges();
-        });
-
-        // Format gamma on change
-        const gammaInput = document.getElementById('gamma');
-        gammaInput.addEventListener('change', (e) => {
-            let val = parseFloat(e.target.value);
-            if (isNaN(val) || val < 0) val = 1e-6;
-            gammaInput.value = val === 0 ? "0.0" : val.toExponential(2);
-            updateSuggestedRanges();
-        });
-
-        // Listeners for remaining inputs to trigger suggestions recalculation
-        const otherInputs = ['totalShares', 'initialPrice', 'eta', 'gamma'];
-        otherInputs.forEach(id => {
-            document.getElementById(id).addEventListener('input', updateSuggestedRanges);
-            document.getElementById(id).addEventListener('change', updateSuggestedRanges);
-        });
-
-        function updateSuggestedRanges() {
-            if (!isDemo) return;
-
-            const shares = parseFloat(document.getElementById('totalShares').value) || 1000000;
-            const price = parseFloat(document.getElementById('initialPrice').value) || 100;
-            const vol = parseFloat(stepVolInput.value) || 0.3;
-            const lambda = parseFloat(lambdaInputText.value) || 1e-4;
-            const eta = parseFloat(document.getElementById('eta').value) || 1e-5;
-
-            // 1. Total Shares
-            const sharesMin = Math.round(500000 / price);
-            const sharesMax = Math.round(50000000 / price);
-            document.getElementById('range-totalShares').textContent = 
-                `Suggested: ${sharesMin.toLocaleString()} – ${sharesMax.toLocaleString()} shares`;
-
-            // 2. Initial Price
-            const priceMin = Math.max(0.01, 100000 / shares);
-            const priceMax = 100000000 / shares;
-            document.getElementById('range-initialPrice').textContent = 
-                `Suggested: $${priceMin.toFixed(2)} – $${priceMax.toFixed(2)}`;
-
-            // 3. Volatility
-            document.getElementById('range-volatility').textContent = "Suggested: 0.05 – 0.60";
-
-            // 4. Lambda (Risk Aversion)
-            const lamMin = (0.01 * eta) / (vol * vol);
-            const lamMax = (4.0 * eta) / (vol * vol);
-            document.getElementById('range-lambda').textContent = 
-                `Suggested: ${lamMin.toExponential(2)} – ${lamMax.toExponential(2)}`;
-
-            // 5. Temporary Impact (eta)
-            const etaMin = (vol * vol * lambda) / 4.0;
-            const etaMax = (vol * vol * lambda) / 0.01;
-            document.getElementById('range-eta').textContent = 
-                `Suggested: ${etaMin.toExponential(2)} – ${etaMax.toExponential(2)}`;
-
-            // 6. Permanent Impact (gamma)
-            const gamMin = 0.01 * eta;
-            const gamMax = 0.5 * eta;
-            document.getElementById('range-gamma').textContent = 
-                `Suggested: ${gamMin.toExponential(2)} – ${gamMax.toExponential(2)}`;
-        }
 
         // Listeners for time window changes
         document.getElementById('startTime').addEventListener('change', updateVolumeProfileBins);
@@ -1278,6 +1194,7 @@
             });
 
             validateVolumeProfile();
+            updateCalculatedImpacts(); // Recalculate impacts when steps change!
         }
 
         function validateVolumeProfile() {
@@ -1358,22 +1275,23 @@
 
         function saveInputState() {
             try {
-                localStorage.setItem('totalShares', document.getElementById('totalShares').value);
-                localStorage.setItem('initialPrice', document.getElementById('initialPrice').value);
-                localStorage.setItem('volInput', document.getElementById('volInput').value);
-                localStorage.setItem('lambdaInputText', document.getElementById('lambdaInputText').value);
-                localStorage.setItem('eta', document.getElementById('eta').value);
-                localStorage.setItem('gamma', document.getElementById('gamma').value);
-                localStorage.setItem('startTime', document.getElementById('startTime').value);
-                localStorage.setItem('endTime', document.getElementById('endTime').value);
-                localStorage.setItem('aiToggle', document.getElementById('aiToggle').checked ? 'true' : 'false');
+                localStorage.setItem('totalShares_dyn', document.getElementById('totalShares').value);
+                localStorage.setItem('initialPrice_dyn', document.getElementById('initialPrice').value);
+                localStorage.setItem('volInput_dyn', document.getElementById('volInput').value);
+                localStorage.setItem('lambdaInputText_dyn', document.getElementById('lambdaInputText').value);
+                localStorage.setItem('adv_dyn', document.getElementById('adv').value);
+                localStorage.setItem('yFactor_dyn', document.getElementById('yFactor').value);
+                localStorage.setItem('cFactor_dyn', document.getElementById('cFactor').value);
+                localStorage.setItem('startTime_dyn', document.getElementById('startTime').value);
+                localStorage.setItem('endTime_dyn', document.getElementById('endTime').value);
+                localStorage.setItem('aiToggle_dyn', document.getElementById('aiToggle').checked ? 'true' : 'false');
 
                 const volumeInputs = document.querySelectorAll('.profile-segments input');
                 const volumeProfile = [];
                 volumeInputs.forEach(input => {
                     volumeProfile.push(parseFloat(input.value) || 0);
                 });
-                localStorage.setItem('volumeProfile', JSON.stringify(volumeProfile));
+                localStorage.setItem('volumeProfile_dyn', JSON.stringify(volumeProfile));
             } catch (e) {
                 console.warn("localStorage is disabled or not accessible:", e);
             }
@@ -1382,13 +1300,13 @@
         function loadInputState() {
             let startTime, endTime;
             try {
-                startTime = localStorage.getItem('startTime');
-                endTime = localStorage.getItem('endTime');
+                startTime = localStorage.getItem('startTime_dyn');
+                endTime = localStorage.getItem('endTime_dyn');
             } catch (e) {
                 console.warn("localStorage is disabled or not accessible:", e);
                 updateVolumeProfileBins();
                 validateVolumeProfile();
-                updateSuggestedRanges();
+                updateCalculatedImpacts();
                 return;
             }
 
@@ -1403,10 +1321,10 @@
             updateVolumeProfileBins();
 
             // Restore basic inputs
-            const fields = ['totalShares', 'initialPrice', 'volInput', 'eta', 'gamma'];
+            const fields = ['totalShares', 'initialPrice', 'volInput', 'adv', 'yFactor', 'cFactor'];
             fields.forEach(id => {
                 try {
-                    const val = localStorage.getItem(id);
+                    const val = localStorage.getItem(id + '_dyn');
                     if (val !== null) {
                         document.getElementById(id).value = val;
                     }
@@ -1415,7 +1333,7 @@
 
             // Restore lambda text directly
             try {
-                const savedLambdaText = localStorage.getItem('lambdaInputText');
+                const savedLambdaText = localStorage.getItem('lambdaInputText_dyn');
                 if (savedLambdaText !== null) {
                     document.getElementById('lambdaInputText').value = savedLambdaText;
                 }
@@ -1423,7 +1341,7 @@
 
             // Restore volume profile segments
             try {
-                const savedProfileStr = localStorage.getItem('volumeProfile');
+                const savedProfileStr = localStorage.getItem('volumeProfile_dyn');
                 if (savedProfileStr) {
                     const savedProfile = JSON.parse(savedProfileStr);
                     const volumeInputs = document.querySelectorAll('.profile-segments input');
@@ -1439,15 +1357,15 @@
 
             // Restore AI toggle
             try {
-                const savedToggle = localStorage.getItem('aiToggle');
+                const savedToggle = localStorage.getItem('aiToggle_dyn');
                 if (savedToggle !== null) {
                     document.getElementById('aiToggle').checked = (savedToggle === 'true');
                 }
             } catch (e) {}
 
-            // Re-run validation and range calculations
+            // Re-run validation, calculations and update impacts
             validateVolumeProfile();
-            updateSuggestedRanges();
+            updateCalculatedImpacts();
         }
 
         // Toggle Documentation Modal Panel
@@ -1465,7 +1383,7 @@
 
         // Reset all simulation fields back to original values
         function resetParameters() {
-            if (confirm("CONFIRM SYSTEM RESET: CLEAR ALL SAVED TERMINAL STATE?")) {
+            if (confirm("CONFIRM SYSTEM RESET: CLEAR ALL SAVED DYNAMIC STATE?")) {
                 try {
                     localStorage.clear();
                 } catch (e) {}
@@ -1486,7 +1404,7 @@
                 randomizeVolumeProfile();
             } else if (e.key === 'F4') {
                 e.preventDefault();
-                window.location.href = '/dynamic';
+                window.location.href = '/';
             } else if (e.key === 'F5') {
                 e.preventDefault();
                 window.location.href = '/portfolio';

@@ -2,6 +2,7 @@ package com.quant.pricing.agent;
 
 import com.quant.pricing.domain.AlmgrenChrissOptimizer;
 import com.quant.pricing.domain.ExecutionSimulator;
+import com.quant.pricing.domain.PortfolioExecutionSimulator;
 import com.quant.pricing.domain.VwapTrajectoryGenerator;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -26,6 +27,11 @@ public class AgentConfiguration {
     @Bean
     public ExecutionSimulator simulator() {
         return new ExecutionSimulator();
+    }
+
+    @Bean
+    public PortfolioExecutionSimulator portfolioSimulator() {
+        return new PortfolioExecutionSimulator();
     }
 
     @Bean

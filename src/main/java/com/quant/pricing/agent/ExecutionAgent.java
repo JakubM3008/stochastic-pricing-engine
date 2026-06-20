@@ -18,5 +18,7 @@ public interface ExecutionAgent {
         6. No preambles, introductions, or trailing text. Return only the 3 bullet points. Total length must not exceed 150 words.
         """)
     String analyzeOrder(String userRequest);
+
+    String analyzePortfolio(String userRequest);
 }
 

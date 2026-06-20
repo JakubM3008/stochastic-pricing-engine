@@ -54,9 +54,14 @@
 * [SimulationController.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/controller/SimulationController.java) - Handles POST request routes for execution benchmarks.
 * [SimulationRequest.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/controller/SimulationRequest.java) - JSON parameter container.
 * [SimulationResponse.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/controller/SimulationResponse.java) - Result container.
+* [PortfolioSimulationController.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/controller/PortfolioSimulationController.java) - Exposes POST endpoints for correlated basket portfolio simulation.
+* [PortfolioSimulationRequest.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/controller/PortfolioSimulationRequest.java) - Position and correlation matrix parameter container.
+* [PortfolioSimulationResponse.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/controller/PortfolioSimulationResponse.java) - Correlated vs uncorrelated metrics.
 * [ExecutionTools.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/agent/ExecutionTools.java) - Exposed LLM execution tools.
 * [ExecutionAgent.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/agent/ExecutionAgent.java) - Defines LLM analyst system instructions.
 * [AgentConfiguration.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/agent/AgentConfiguration.java) - Wire framework configurations and fallback mock models.
 * [PricingEngineRunner.java](file:///Users/jakubm/stochastic-pricing-engine/src/main/java/com/quant/pricing/PricingEngineRunner.java) - CommandLineRunner that prints simulation benchmarks.
-* [index.html](file:///Users/jakubm/stochastic-pricing-engine/src/main/resources/static/index.html) - Visual Chart.js frontend dashboard.
+* [index.html](file:///Users/jakubm/stochastic-pricing-engine/src/main/resources/static/index.html) - Standard visual Chart.js frontend dashboard.
+* [dynamic.html](file:///Users/jakubm/stochastic-pricing-engine/src/main/resources/static/dynamic.html) - Dynamic calibration dashboard using Square-Root Impact Law.
+* [portfolio.html](file:///Users/jakubm/stochastic-pricing-engine/src/main/resources/static/portfolio.html) - Correlated 3-asset portfolio decay and risk reduction dashboard.
 * [gradle.yml](file:///Users/jakubm/stochastic-pricing-engine/.github/workflows/gradle.yml) - GitHub Actions CI compiler pipeline configuration.
