@@ -49,7 +49,7 @@ class PortfolioSimulationControllerTest {
     }
 
     @Test
-    void shouldFailPortfolioSimulationOnNonPositiveDefiniteCorrelation() throws Exception {
+    void shouldRepairPortfolioSimulationOnNonPositiveDefiniteCorrelation() throws Exception {
         // A correlation matrix with very high off-diagonals that is invalid / not positive-definite
         String requestJson = """
             {
@@ -71,8 +71,10 @@ class PortfolioSimulationControllerTest {
         mockMvc.perform(post("/api/portfolio/simulate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestJson))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("EXECUTION ERROR")));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.correlationRepaired").value(true))
+                .andExpect(jsonPath("$.repairedCorrelationMatrix").isArray())
+                .andExpect(jsonPath("$.repairedCorrelationMatrix[0][1]").isNumber());
     }
 
     @Test

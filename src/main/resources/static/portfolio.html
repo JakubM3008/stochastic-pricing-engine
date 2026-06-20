@@ -675,7 +675,7 @@
     <!-- Bloomberg Footer Status Bar -->
     <div class="terminal-footer">
         <div>PORT: 8080 | ENGINE: JVM STOCHASTIC RISK ENGINE v2.0</div>
-        <div>PORTFOLIO ENGINE ACTIVE | CHOLESKY SIMD SHOCK GENERATOR</div>
+        <div id="footerStatus">PORTFOLIO ENGINE ACTIVE | CHOLESKY SIMD SHOCK GENERATOR</div>
     </div>
 
     <script>
@@ -903,6 +903,19 @@
             riskChart.data.datasets[0].data = [data.correlatedResult.expectedShortfall, data.correlatedResult.shortfallStandardDeviation];
             riskChart.data.datasets[1].data = [data.uncorrelatedResult.expectedShortfall, data.uncorrelatedResult.shortfallStandardDeviation];
             riskChart.update();
+
+            // Handle correlation repair warning
+            const footerStatus = document.getElementById('footerStatus');
+            if (data.correlationRepaired) {
+                // Update inputs on the page to match the repaired values
+                document.getElementById('rho12').value = data.repairedCorrelationMatrix[0][1].toFixed(2);
+                document.getElementById('rho13').value = data.repairedCorrelationMatrix[0][2].toFixed(2);
+                document.getElementById('rho23').value = data.repairedCorrelationMatrix[1][2].toFixed(2);
+                
+                footerStatus.innerHTML = "PORTFOLIO ENGINE ACTIVE | <span style='color: var(--accent-primary); font-weight: bold;'>[SYSTEM NOTICE: INPUT MATRIX REPAIRED]</span>";
+            } else {
+                footerStatus.innerHTML = "PORTFOLIO ENGINE ACTIVE | CHOLESKY SIMD SHOCK GENERATOR";
+            }
         }
 
         function formatCurrency(val) {

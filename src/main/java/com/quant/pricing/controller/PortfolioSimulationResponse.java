@@ -6,5 +6,8 @@ public record PortfolioSimulationResponse(
         double[][] trajectories,
         ExecutionResult correlatedResult,
         ExecutionResult uncorrelatedResult,
-        double diversificationBenefit
+        double diversificationBenefit,
+        double[][] repairedCorrelationMatrix,
+        boolean correlationRepaired
 ) {}
+

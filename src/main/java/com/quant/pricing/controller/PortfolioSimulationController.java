@@ -54,13 +54,19 @@ public class PortfolioSimulationController {
                 );
             }
 
-            // 2. Build Covariance Matrices: Full Covariance (Correlated) vs Diagonal (Uncorrelated)
+            // 2. Perform Spectral Repair check on Correlation Matrix
+            double[][] originalCorr = request.correlationMatrix();
+            double[][] repairedCorr = repairCorrelationMatrix(originalCorr, 1e-4);
+            boolean correlationRepaired = (repairedCorr != null);
+            double[][] finalCorr = correlationRepaired ? repairedCorr : originalCorr;
+
+            // 3. Build Covariance Matrices: Full Covariance (Correlated) vs Diagonal (Uncorrelated)
             double[][] covariance = new double[m][m];
             double[][] diagonalCovariance = new double[m][m];
 
             for (int i = 0; i < m; i++) {
                 for (int j = 0; j < m; j++) {
-                    double covVal = request.correlationMatrix()[i][j] * request.stepVolatilities()[i] * request.stepVolatilities()[j];
+                    double covVal = finalCorr[i][j] * request.stepVolatilities()[i] * request.stepVolatilities()[j];
                     covariance[i][j] = covVal;
                     if (i == j) {
                         diagonalCovariance[i][j] = covVal;
@@ -70,7 +76,7 @@ public class PortfolioSimulationController {
                 }
             }
 
-            // 3. Run Monte Carlo Simulations
+            // 4. Run Monte Carlo Simulations
             ExecutionResult correlatedRes = portfolioSimulator.simulate(
                     request.initialPrices(),
                     trajectories,
@@ -93,14 +99,16 @@ public class PortfolioSimulationController {
                     numPaths
             );
 
-            // 4. Calculate Risk Diversification Benefit (Volatility reduction)
+            // 5. Calculate Risk Diversification Benefit (Volatility reduction)
             double diversificationBenefit = uncorrelatedRes.shortfallStandardDeviation() - correlatedRes.shortfallStandardDeviation();
 
             PortfolioSimulationResponse response = new PortfolioSimulationResponse(
                     trajectories,
                     correlatedRes,
                     uncorrelatedRes,
-                    diversificationBenefit
+                    diversificationBenefit,
+                    finalCorr,
+                    correlationRepaired
             );
 
             return ResponseEntity.ok(response);
@@ -235,5 +243,108 @@ public class PortfolioSimulationController {
             recommendation, utilityDiff,
             note
         );
+    }
+
+    private double[][] repairCorrelationMatrix(double[][] a, double targetMinEigenvalue) {
+        int n = a.length;
+        double[][] v = new double[n][n];
+        for (int i = 0; i < n; i++) {
+            v[i][i] = 1.0;
+        }
+
+        double[][] d = new double[n][n];
+        for (int i = 0; i < n; i++) {
+            System.arraycopy(a[i], 0, d[i], 0, n);
+        }
+
+        int maxIterations = 50;
+        double eps = 1e-12;
+
+        for (int iter = 0; iter < maxIterations; iter++) {
+            int p = 0;
+            int q = 1;
+            double maxOffDiag = Math.abs(d[0][1]);
+            for (int i = 0; i < n; i++) {
+                for (int j = i + 1; j < n; j++) {
+                    double val = Math.abs(d[i][j]);
+                    if (val > maxOffDiag) {
+                        maxOffDiag = val;
+                        p = i;
+                        q = j;
+                    }
+                }
+            }
+
+            if (maxOffDiag < eps) {
+                break;
+            }
+
+            double dp = d[p][p];
+            double dq = d[q][q];
+            double dpq = d[p][q];
+
+            double phi = 0.5 * Math.atan2(2 * dpq, dq - dp);
+            double c = Math.cos(phi);
+            double s = Math.sin(phi);
+
+            d[p][p] = c * c * dp - 2 * s * c * dpq + s * s * dq;
+            d[q][q] = s * s * dp + 2 * s * c * dpq + c * c * dq;
+            d[p][q] = 0.0;
+            d[q][p] = 0.0;
+
+            for (int i = 0; i < n; i++) {
+                if (i != p && i != q) {
+                    double dip = d[i][p];
+                    double diq = d[i][q];
+                    d[i][p] = c * dip - s * diq;
+                    d[p][i] = d[i][p];
+                    d[i][q] = s * dip + c * diq;
+                    d[q][i] = d[i][q];
+                }
+            }
+
+            for (int i = 0; i < n; i++) {
+                double vip = v[i][p];
+                double viq = v[i][q];
+                v[i][p] = c * vip - s * viq;
+                v[i][q] = s * vip + c * viq;
+            }
+        }
+
+        boolean repaired = false;
+        for (int i = 0; i < n; i++) {
+            if (d[i][i] < targetMinEigenvalue) {
+                d[i][i] = targetMinEigenvalue;
+                repaired = true;
+            }
+        }
+
+        if (!repaired) {
+            return null; // Return null to indicate no repair was needed
+        }
+
+        double[][] reconstructed = new double[n][n];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                double val = 0.0;
+                for (int k = 0; k < n; k++) {
+                    val += v[i][k] * d[k][k] * v[j][k];
+                }
+                reconstructed[i][j] = val;
+            }
+        }
+
+        // Re-normalize diagonal to 1.0 (correlation matrix boundary condition)
+        double[] diagSqrt = new double[n];
+        for (int i = 0; i < n; i++) {
+            diagSqrt[i] = Math.sqrt(reconstructed[i][i]);
+        }
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                reconstructed[i][j] = reconstructed[i][j] / (diagSqrt[i] * diagSqrt[j]);
+            }
+        }
+
+        return reconstructed;
     }
 }
