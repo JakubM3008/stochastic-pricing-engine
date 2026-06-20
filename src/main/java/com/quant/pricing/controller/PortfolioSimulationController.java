@@ -196,7 +196,7 @@ public class PortfolioSimulationController {
         String prompt = template.replace("{JSON_INPUT}", jsonString);
 
         try {
-            return agent.analyzeOrder(prompt);
+            return agent.analyzePortfolio(prompt);
         } catch (Exception e) {
             return formatLocalPortfolioReport(correlatedResult, uncorrelatedResult, benefit, request.lambda(), e.getMessage());
         }
