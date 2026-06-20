@@ -71,6 +71,22 @@ public class SimulationController {
         double tau = 1.0;
         List<FrontierPoint> frontier = new ArrayList<>();
         
+        double[] twapTrajectory = optimizer.optimize(
+                request.totalShares(), request.numSteps(), request.stepVolatility(),
+                0.0, request.eta(), request.gamma(), tau
+        );
+        double expectedShortfallTwap = 0.0;
+        double sumSqHoldingsTwap = 0.0;
+        for (int j = 1; j <= request.numSteps(); j++) {
+            double t_j = twapTrajectory[j - 1] - twapTrajectory[j];
+            double x_j = twapTrajectory[j];
+            expectedShortfallTwap += t_j * (request.gamma() * (request.totalShares() - x_j) + request.eta() * (t_j / tau));
+            double x_prev = twapTrajectory[j - 1];
+            sumSqHoldingsTwap += x_prev * x_prev;
+        }
+        double varianceTwap = request.stepVolatility() * request.stepVolatility() * tau * sumSqHoldingsTwap;
+        frontier.add(new FrontierPoint(0.0, expectedShortfallTwap, Math.sqrt(varianceTwap)));
+
         double baseLambda = request.lambda();
         if (baseLambda <= 0.0) {
             baseLambda = 1e-4;
