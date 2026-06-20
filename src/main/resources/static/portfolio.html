@@ -339,6 +339,102 @@
             margin-bottom: 0.75rem;
             display: none;
         }
+
+        /* Custom Toggle Switch Bracket [X]/[ ] styling */
+        .terminal-toggle {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .terminal-toggle input {
+            display: none;
+        }
+        .terminal-toggle span::before {
+            content: "[ ] ";
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .terminal-toggle input:checked + span::before {
+            content: "[X] ";
+            color: var(--accent-optimal);
+        }
+        .terminal-toggle input:checked + span {
+            color: var(--accent-optimal);
+        }
+
+        /* Quant Report Container (CRT console styling) */
+        .report-box {
+            background: #000000;
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.5;
+            color: var(--accent-optimal); /* Green screen printout style */
+            font-size: 11px;
+            white-space: pre-wrap;
+            contain: content;
+            will-change: transform;
+        }
+
+        .report-box h3 {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-top: 0.75rem;
+            margin-bottom: 0.25rem;
+            color: var(--accent-twap); /* Yellow titles */
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.1rem;
+        }
+
+        .report-box h3:first-child {
+            margin-top: 0;
+        }
+
+        .report-box ul {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 0.5rem;
+        }
+
+        .report-box li {
+            position: relative;
+            padding-left: 1rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .report-box li::before {
+            content: ">";
+            color: var(--accent-twap);
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-weight: 700;
+        }
+
+        .report-box strong {
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        @keyframes analyst-loading {
+            0% { content: "SYS_PROCESSOR: STREAMING JVM MONTE CARLO STATS [ | ]"; }
+            25% { content: "SYS_PROCESSOR: DECRYPTING MARKET ENVELOPE      [ / ]"; }
+            50% { content: "SYS_PROCESSOR: CALCULATING RISK TRAJECTORIES    [ - ]"; }
+            75% { content: "SYS_PROCESSOR: COMPILING Pre-Trade REPORT       [ \\ ]"; }
+        }
+        .analyst-spinner::after {
+            content: "SYS_PROCESSOR: INITIALIZING RUN [ - ]";
+            animation: analyst-loading 1.6s steps(4) infinite;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-primary);
+            font-size: 11px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -537,6 +633,18 @@
                     </table>
                 </div>
 
+                <!-- AI analyst card -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">4 &lt;Go&gt; Speculative Risk report</span>
+                        <label class="terminal-toggle">
+                            <input type="checkbox" id="aiToggle" checked>
+                            <span>LIVE GEMINI API</span>
+                        </label>
+                    </div>
+                    <div class="report-box" id="reportContent">Configure simulation boundaries and run the execution benchmark to trigger the report.</div>
+                </div>
+
                 <!-- Technical Quant notes -->
                 <div class="panel" style="font-family: 'JetBrains Mono', monospace; font-size: 10px; line-height: 1.5; color: #888888; border: 1px solid var(--border-color);">
                     <div style="color: var(--accent-primary); font-weight: bold; margin-bottom: 0.25rem;">[PORTFOLIO COVARIANCE DIVERSIFICATION DETAILS]</div>
@@ -689,6 +797,23 @@
                 numSteps: numSteps
             };
 
+            const reportContent = document.getElementById('reportContent');
+            const liveAI = document.getElementById('aiToggle').checked;
+            
+            if (liveAI) {
+                reportContent.innerHTML = `
+                    <div style="padding: 0.5rem 0;">
+                        <div class="analyst-spinner" style="font-weight: bold; color: var(--accent-primary);"></div>
+                    </div>
+                `;
+            } else {
+                reportContent.innerHTML = `
+                    <div style="padding: 0.5rem 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent-optimal);">
+                        <span>SYS_PROCESSOR: GENERATING LOCAL PRE-TRADE VALUATION REPORT...</span>
+                    </div>
+                `;
+            }
+
             try {
                 const response = await fetch('/api/portfolio/simulate', {
                     method: 'POST',
@@ -705,9 +830,37 @@
                 updateUI(data, numSteps);
                 loader.classList.remove('active');
 
+                // Trigger background fetch for the report
+                const bypassAI = !document.getElementById('aiToggle').checked;
+                const reportPayload = {
+                    request: requestPayload,
+                    correlatedResult: data.correlatedResult,
+                    uncorrelatedResult: data.uncorrelatedResult,
+                    diversificationBenefit: data.diversificationBenefit
+                };
+                fetch(`/api/portfolio/report?bypassAI=${bypassAI}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reportPayload)
+                })
+                .then(async (repRes) => {
+                    if (!repRes.ok) {
+                        const errText = await repRes.text();
+                        throw new Error(errText);
+                    }
+                    return repRes.text();
+                })
+                .then((reportMarkdown) => {
+                    renderReport(reportMarkdown);
+                })
+                .catch((reportErr) => {
+                    reportContent.innerHTML = `<span style="color: #ff3333; font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: bold;">SYS_ERROR: API TRANSACTION FAILED: ${reportErr.message}</span>`;
+                });
+
             } catch (err) {
                 alert(err.message);
                 loader.classList.remove('active');
+                reportContent.innerHTML = `<span style="color: #ff3333; font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: bold;">SYS_ERROR: SIMULATION FAILED: ${err.message}</span>`;
             }
         });
 
@@ -784,6 +937,37 @@
                 window.location.href = '/dynamic';
             }
         });
+
+        function renderReport(mdText) {
+            const container = document.getElementById('reportContent');
+            if (!mdText) {
+                container.innerHTML = "No report available.";
+                return;
+            }
+            
+            // Basic markdown string parser for formatting report cards
+            let html = mdText
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+                .replace(/^\* (.*$)/gim, '<li>$1</li>');
+            
+            // Wrap bullet lists
+            if (html.includes('<li>')) {
+                html = html.replace(/(<li>.*<\/li>)/sim, '<ul>$1</ul>');
+            }
+            container.innerHTML = html;
+        }
+
+        // Save and restore AI toggle state
+        const aiToggle = document.getElementById('aiToggle');
+        aiToggle.addEventListener('change', () => {
+            localStorage.setItem('portfolioAiToggle', aiToggle.checked ? 'true' : 'false');
+        });
+        const savedToggle = localStorage.getItem('portfolioAiToggle');
+        if (savedToggle !== null) {
+            aiToggle.checked = (savedToggle === 'true');
+        }
 
         // Initialize on page load
         initializeCharts();
