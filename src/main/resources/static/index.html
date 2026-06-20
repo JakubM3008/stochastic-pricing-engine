@@ -776,6 +776,7 @@
         
         let trajectoryChart = null;
         let varianceChart = null;
+        let lastSimulationData = null;
 
         
         Chart.defaults.font.family = "'JetBrains Mono', Courier, monospace";
@@ -1003,6 +1004,7 @@
                 }
 
                 const data = await response.json();
+                lastSimulationData = data;
                 updateUI(data);
                 
                 document.getElementById('frontierBtn').style.display = 'block';
@@ -1472,7 +1474,7 @@
 
         let frontierChart = null;
 
-        function renderFrontier(dataPoints) {
+        function renderFrontier(dataPoints, current) {
             const ctx = document.getElementById('frontierChart').getContext('2d');
             const sortedData = dataPoints.map(p => ({
                 x: p.shortfallStandardDeviation,
@@ -1480,8 +1482,55 @@
                 lambda: p.lambda
             })).sort((a, b) => a.x - b.x);
 
+            const datasets = [
+                {
+                    label: 'Efficient Frontier',
+                    borderColor: '#ffa500',
+                    backgroundColor: 'rgba(255, 165, 0, 0.05)',
+                    data: sortedData,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    showLine: true,
+                    tension: 0.1,
+                    order: 2
+                }
+            ];
+
+            if (current) {
+                datasets.push({
+                    label: 'Your Optimal AC',
+                    borderColor: '#00ff00',
+                    backgroundColor: '#00ff00',
+                    data: [{ x: current.optimalSD, y: current.optimalES }],
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    showLine: false,
+                    order: 1
+                });
+                datasets.push({
+                    label: 'Your TWAP',
+                    borderColor: '#ffff00',
+                    backgroundColor: '#ffff00',
+                    data: [{ x: current.twapSD, y: current.twapES }],
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    showLine: false,
+                    order: 1
+                });
+                datasets.push({
+                    label: 'Your VWAP',
+                    borderColor: '#00ffff',
+                    backgroundColor: '#00ffff',
+                    data: [{ x: current.vwapSD, y: current.vwapES }],
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    showLine: false,
+                    order: 1
+                });
+            }
+
             if (frontierChart) {
-                frontierChart.data.datasets[0].data = sortedData;
+                frontierChart.data.datasets = datasets;
                 frontierChart.update();
                 return;
             }
@@ -1489,17 +1538,7 @@
             frontierChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    datasets: [{
-                        label: 'Efficient Frontier (AC)',
-                        borderColor: '#ffa500',
-                        backgroundColor: 'rgba(255,165,0,0.1)',
-                        data: sortedData,
-                        borderWidth: 2,
-                        pointBackgroundColor: '#ffa500',
-                        pointHoverRadius: 6,
-                        showLine: true,
-                        tension: 0.1
-                    }]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
@@ -1549,11 +1588,23 @@
                             callbacks: {
                                 label: function(context) {
                                     const pt = context.raw;
-                                    return `Cost: ${formatCurrency(pt.y)} | Risk: ${formatCurrency(pt.x)} | Lambda: ${pt.lambda.toExponential(2)}`;
+                                    if (context.datasetIndex === 0) {
+                                        return `Cost: ${formatCurrency(pt.y)} | Risk: ${formatCurrency(pt.x)} | Lambda: ${pt.lambda.toExponential(2)}`;
+                                    }
+                                    return `${context.dataset.label} -> Cost: ${formatCurrency(pt.y)} | Risk: ${formatCurrency(pt.x)}`;
                                 }
                             }
                         },
-                        legend: { display: false }
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'end',
+                            labels: {
+                                color: '#ffffff',
+                                boxWidth: 10,
+                                font: { size: 9 }
+                            }
+                        }
                     }
                 }
             });
@@ -1603,7 +1654,20 @@
 
                 const data = await response.json();
                 panel.style.display = 'block';
-                renderFrontier(data);
+
+                let currentResults = null;
+                if (lastSimulationData) {
+                    currentResults = {
+                        optimalES: lastSimulationData.optimalResult.expectedShortfall,
+                        optimalSD: lastSimulationData.optimalResult.shortfallStandardDeviation,
+                        twapES: lastSimulationData.twapResult.expectedShortfall,
+                        twapSD: lastSimulationData.twapResult.shortfallStandardDeviation,
+                        vwapES: lastSimulationData.vwapResult.expectedShortfall,
+                        vwapSD: lastSimulationData.vwapResult.shortfallStandardDeviation
+                    };
+                }
+
+                renderFrontier(data, currentResults);
             } catch (err) {
                 alert("FRONTIER GENERATION FAILED: " + err.message);
             } finally {
