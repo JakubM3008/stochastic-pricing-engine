@@ -1474,26 +1474,6 @@
 
         let frontierChart = null;
 
-        function calculateAnalyticalMetrics(trajectory, eta, gamma, stepVolatility) {
-            const totalShares = trajectory[0];
-            const numSteps = trajectory.length - 1;
-            const tau = 1.0;
-            let expectedShortfall = 0.0;
-            let sumSqHoldings = 0.0;
-            for (let j = 1; j <= numSteps; j++) {
-                const t_j = trajectory[j - 1] - trajectory[j];
-                const x_j = trajectory[j];
-                expectedShortfall += t_j * (gamma * (totalShares - x_j) + eta * (t_j / tau));
-                const x_prev = trajectory[j - 1];
-                sumSqHoldings += x_prev * x_prev;
-            }
-            const variance = stepVolatility * stepVolatility * tau * sumSqHoldings;
-            return {
-                expectedShortfall,
-                shortfallStandardDeviation: Math.sqrt(variance)
-            };
-        }
-
         function renderFrontier(dataPoints, current) {
             const ctx = document.getElementById('frontierChart').getContext('2d');
             const sortedData = dataPoints.map(p => ({
@@ -1684,20 +1664,13 @@
 
                 let currentResults = null;
                 if (lastSimulationData) {
-                    const etaVal = parseFloat(document.getElementById('eta').value);
-                    const gammaVal = parseFloat(document.getElementById('gamma').value);
-                    
-                    const optAnal = calculateAnalyticalMetrics(lastSimulationData.optimalTrajectory, etaVal, gammaVal, stepVolValue);
-                    const twapAnal = calculateAnalyticalMetrics(lastSimulationData.twapTrajectory, etaVal, gammaVal, stepVolValue);
-                    const vwapAnal = calculateAnalyticalMetrics(lastSimulationData.vwapTrajectory, etaVal, gammaVal, stepVolValue);
-                    
                     currentResults = {
-                        optimalES: optAnal.expectedShortfall,
-                        optimalSD: optAnal.shortfallStandardDeviation,
-                        twapES: twapAnal.expectedShortfall,
-                        twapSD: twapAnal.shortfallStandardDeviation,
-                        vwapES: vwapAnal.expectedShortfall,
-                        vwapSD: vwapAnal.shortfallStandardDeviation
+                        optimalES: lastSimulationData.optimalResult.expectedShortfall,
+                        optimalSD: lastSimulationData.optimalResult.shortfallStandardDeviation,
+                        twapES: lastSimulationData.twapResult.expectedShortfall,
+                        twapSD: lastSimulationData.twapResult.shortfallStandardDeviation,
+                        vwapES: lastSimulationData.vwapResult.expectedShortfall,
+                        vwapSD: lastSimulationData.vwapResult.shortfallStandardDeviation
                     };
                 }
 
