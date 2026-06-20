@@ -20,6 +20,7 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
 	implementation 'dev.langchain4j:langchain4j:0.35.0'
 	implementation 'dev.langchain4j:langchain4j-google-ai-gemini:0.35.0'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'

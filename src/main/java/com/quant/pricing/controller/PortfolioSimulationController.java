@@ -1,11 +1,18 @@
 package com.quant.pricing.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quant.pricing.agent.ExecutionAgent;
 import com.quant.pricing.domain.AlmgrenChrissOptimizer;
 import com.quant.pricing.domain.ExecutionResult;
 import com.quant.pricing.domain.PortfolioExecutionSimulator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -15,6 +22,7 @@ public class PortfolioSimulationController {
     private final AlmgrenChrissOptimizer optimizer;
     private final PortfolioExecutionSimulator portfolioSimulator;
     private final ExecutionAgent agent;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public PortfolioSimulationController(AlmgrenChrissOptimizer optimizer,
                                          PortfolioExecutionSimulator portfolioSimulator,
@@ -120,59 +128,75 @@ public class PortfolioSimulationController {
             return formatLocalPortfolioReport(correlatedResult, uncorrelatedResult, benefit, request.lambda(), null);
         }
 
+        String template;
+        try (InputStream is = getClass().getResourceAsStream("/report-summary.md")) {
+            if (is == null) {
+                throw new IllegalStateException("Template resource /report-summary.md not found");
+            }
+            template = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return formatLocalPortfolioReport(correlatedResult, uncorrelatedResult, benefit, request.lambda(), "Failed to read template: " + e.getMessage());
+        }
+
+        Map<String, Object> jsonPayload = new LinkedHashMap<>();
+        
+        // 1. Methodology
+        Map<String, Object> methodology = new LinkedHashMap<>();
+        methodology.put("optimizationFramework", "Almgren-Chriss Optimal Execution");
+        methodology.put("riskModeling", "10,000-path Monte Carlo Simulation with Cholesky Decomposition");
+        methodology.put("costRiskMetrics", "Expected Shortfall & Shortfall Volatility (SD)");
+        jsonPayload.put("methodology", methodology);
+
+        // 2. Input Parameters
+        Map<String, Object> inputParams = new LinkedHashMap<>();
+        inputParams.put("numSteps", request.numSteps());
+        inputParams.put("lambda", request.lambda());
+        
+        List<Map<String, Object>> assetParams = new ArrayList<>();
+        for (int i = 0; i < request.initialPrices().length; i++) {
+            Map<String, Object> asset = new LinkedHashMap<>();
+            asset.put("assetIndex", i + 1);
+            asset.put("initialPrice", request.initialPrices()[i]);
+            asset.put("shares", request.totalShares()[i]);
+            asset.put("volatility", request.stepVolatilities()[i]);
+            asset.put("eta", request.etas()[i]);
+            asset.put("gamma", request.gammas()[i]);
+            assetParams.add(asset);
+        }
+        inputParams.put("assets", assetParams);
+        inputParams.put("correlationMatrix", request.correlationMatrix());
+        jsonPayload.put("inputParameters", inputParams);
+
+        // 3. Detailed Outputs
+        Map<String, Object> detailedOutputs = new LinkedHashMap<>();
+        detailedOutputs.put("trajectories", reportPayload.trajectories());
+        
+        Map<String, Object> correlated = new LinkedHashMap<>();
+        correlated.put("expectedShortfall", correlatedResult.expectedShortfall());
+        correlated.put("shortfallStandardDeviation", correlatedResult.shortfallStandardDeviation());
+        correlated.put("shortfallVariance", correlatedResult.shortfallVariance());
+        detailedOutputs.put("correlatedPortfolio", correlated);
+        
+        Map<String, Object> uncorrelated = new LinkedHashMap<>();
+        uncorrelated.put("expectedShortfall", uncorrelatedResult.expectedShortfall());
+        uncorrelated.put("shortfallStandardDeviation", uncorrelatedResult.shortfallStandardDeviation());
+        uncorrelated.put("shortfallVariance", uncorrelatedResult.shortfallVariance());
+        detailedOutputs.put("uncorrelatedPortfolio", uncorrelated);
+        
+        detailedOutputs.put("diversificationBenefit", benefit);
+        jsonPayload.put("detailedOutputs", detailedOutputs);
+
+        String jsonString;
         try {
-            StringBuilder queryBuilder = new StringBuilder();
-            queryBuilder.append("PORTFOLIO LIQUIDATION ANALYSIS & EXPLAINABILITY REPORT\n\n");
-            queryBuilder.append("--- METHODOLOGY OVERVIEW ---\n");
-            queryBuilder.append("- Optimization Framework: Almgren-Chriss Optimal Execution (independent holdings decay paths balancing transaction cost vs. inventory risk under risk aversion lambda).\n");
-            queryBuilder.append("- Risk Modeling: 10,000-path Monte Carlo Simulation with Cholesky Decomposition factor mapping (Y = L * Z) to generate correlated asset mid-market price shocks.\n");
-            queryBuilder.append("- Cost-Risk Metrics: Expected Shortfall (mean liquidation cost) and Shortfall Volatility (Standard Deviation of liquidation cost).\n\n");
-            
-            queryBuilder.append("--- INPUT PARAMETERS ---\n");
-            queryBuilder.append(String.format("- Common Parameters: Liquidation Steps (N) = %d, Risk Aversion (lambda) = %.4e\n", request.numSteps(), request.lambda()));
-            for (int i = 0; i < request.initialPrices().length; i++) {
-                queryBuilder.append(String.format(
-                    "- Asset S%d: Initial Price = $%.2f, Shares = %.0f, Volatility = %.4f, Temp Impact (eta) = %.4e, Perm Impact (gamma) = %.4e\n",
-                    (i + 1), request.initialPrices()[i], request.totalShares()[i], request.stepVolatilities()[i], request.etas()[i], request.gammas()[i]
-                ));
-            }
-            queryBuilder.append("- Correlation Matrix (rho):\n");
-            double[][] rho = request.correlationMatrix();
-            for (int i = 0; i < rho.length; i++) {
-                queryBuilder.append("  ");
-                for (int j = 0; j < rho[i].length; j++) {
-                    queryBuilder.append(String.format("%.2f ", rho[i][j]));
-                }
-                queryBuilder.append("\n");
-            }
-            queryBuilder.append("\n");
+            jsonString = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonPayload);
+        } catch (Exception e) {
+            return formatLocalPortfolioReport(correlatedResult, uncorrelatedResult, benefit, request.lambda(), "Failed to serialize JSON payload: " + e.getMessage());
+        }
 
-            queryBuilder.append("--- DETAILED CALCULATION OUTPUTS ---\n");
-            if (reportPayload.trajectories() != null) {
-                queryBuilder.append("- Optimized Holding Decay Trajectories (per step):\n");
-                for (int i = 0; i < reportPayload.trajectories().length; i++) {
-                    queryBuilder.append(String.format("  * S%d Decay: ", (i + 1)));
-                    for (int s = 0; s < reportPayload.trajectories()[i].length; s++) {
-                        queryBuilder.append(String.format("%.1f ", reportPayload.trajectories()[i][s]));
-                    }
-                    queryBuilder.append("\n");
-                }
-            }
-            queryBuilder.append(String.format(
-                "- Correlated Portfolio (Basket): Expected Shortfall = $%.2f, Volatility (SD) = $%.2f, Shortfall Variance = $%.2f\n" +
-                "- Uncorrelated Portfolio (Independent Sum): Expected Shortfall = $%.2f, Volatility (SD) = $%.2f, Shortfall Variance = $%.2f\n" +
-                "- Calculated Diversification Benefit (Risk SD Reduction): $%.2f\n\n",
-                correlatedResult.expectedShortfall(), correlatedResult.shortfallStandardDeviation(), correlatedResult.shortfallVariance(),
-                uncorrelatedResult.expectedShortfall(), uncorrelatedResult.shortfallStandardDeviation(), uncorrelatedResult.shortfallVariance(),
-                benefit
-            ));
+        String prompt = template.replace("{JSON_INPUT}", jsonString);
 
-            queryBuilder.append("Analyze this portfolio risk profile and provide an explainability analysis. The output must have exactly 3 bullet points, under 150 words total, and include:\n");
-            queryBuilder.append("1. Explanation of how the assets' correlations affect the portfolio volatility relative to the uncorrelated sum.\n");
-            queryBuilder.append("2. The final calculated risk-adjusted utility (Expected Shortfall + lambda * SD^2) for both portfolios (show only the final value, do not decompose the calculation elements/steps) and explain the comparison.\n");
-            queryBuilder.append("3. A clear execution suggestion choosing the portfolio with the superior (lower) risk-adjusted utility.");
-
-            return agent.analyzeOrder(queryBuilder.toString());
+        try {
+            return agent.analyzeOrder(prompt);
         } catch (Exception e) {
             return formatLocalPortfolioReport(correlatedResult, uncorrelatedResult, benefit, request.lambda(), e.getMessage());
         }
