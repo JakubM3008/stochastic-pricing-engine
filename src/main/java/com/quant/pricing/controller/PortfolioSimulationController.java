@@ -121,27 +121,58 @@ public class PortfolioSimulationController {
         }
 
         try {
-            String query = String.format(
-                    "Portfolio liquidation of 3 assets:\n" +
-                    "- S1: %.0f shares, S2: %.0f shares, S3: %.0f shares.\n" +
-                    "- Volatilities: S1=%.2f, S2=%.2f, S3=%.2f.\n" +
-                    "- Correlations: S1-S2=%.2f, S1-S3=%.2f, S2-S3=%.2f.\n" +
-                    "Pre-calculated basket simulation results (10,000 paths):\n" +
-                    "- Correlated Portfolio: ES=%.2f USD, SD=%.2f USD\n" +
-                    "- Uncorrelated Portfolio: ES=%.2f USD, SD=%.2f USD\n" +
-                    "- Diversification Benefit (Risk SD Reduction): %.2f USD.\n" +
-                    "Analyze the portfolio risk profile. Provide:\n" +
-                    "1. Bullet 1: Explain why the correlated risk differs from the uncorrelated sum based on correlations.\n" +
-                    "2. Bullet 2: Explain why expected shortfall is identical but risk is reduced due to diversification.\n" +
-                    "3. Bullet 3: Provide a clear execution suggestion under these correlation conditions.",
-                    request.totalShares()[0], request.totalShares()[1], request.totalShares()[2],
-                    request.stepVolatilities()[0], request.stepVolatilities()[1], request.stepVolatilities()[2],
-                    request.correlationMatrix()[0][1], request.correlationMatrix()[0][2], request.correlationMatrix()[1][2],
-                    correlatedResult.expectedShortfall(), correlatedResult.shortfallStandardDeviation(),
-                    uncorrelatedResult.expectedShortfall(), uncorrelatedResult.shortfallStandardDeviation(),
-                    benefit
-            );
-            return agent.analyzeOrder(query);
+            StringBuilder queryBuilder = new StringBuilder();
+            queryBuilder.append("PORTFOLIO LIQUIDATION ANALYSIS & EXPLAINABILITY REPORT\n\n");
+            queryBuilder.append("--- METHODOLOGY OVERVIEW ---\n");
+            queryBuilder.append("- Optimization Framework: Almgren-Chriss Optimal Execution (independent holdings decay paths balancing transaction cost vs. inventory risk under risk aversion lambda).\n");
+            queryBuilder.append("- Risk Modeling: 10,000-path Monte Carlo Simulation with Cholesky Decomposition factor mapping (Y = L * Z) to generate correlated asset mid-market price shocks.\n");
+            queryBuilder.append("- Cost-Risk Metrics: Expected Shortfall (mean liquidation cost) and Shortfall Volatility (Standard Deviation of liquidation cost).\n\n");
+            
+            queryBuilder.append("--- INPUT PARAMETERS ---\n");
+            queryBuilder.append(String.format("- Common Parameters: Liquidation Steps (N) = %d, Risk Aversion (lambda) = %.4e\n", request.numSteps(), request.lambda()));
+            for (int i = 0; i < request.initialPrices().length; i++) {
+                queryBuilder.append(String.format(
+                    "- Asset S%d: Initial Price = $%.2f, Shares = %.0f, Volatility = %.4f, Temp Impact (eta) = %.4e, Perm Impact (gamma) = %.4e\n",
+                    (i + 1), request.initialPrices()[i], request.totalShares()[i], request.stepVolatilities()[i], request.etas()[i], request.gammas()[i]
+                ));
+            }
+            queryBuilder.append("- Correlation Matrix (rho):\n");
+            double[][] rho = request.correlationMatrix();
+            for (int i = 0; i < rho.length; i++) {
+                queryBuilder.append("  ");
+                for (int j = 0; j < rho[i].length; j++) {
+                    queryBuilder.append(String.format("%.2f ", rho[i][j]));
+                }
+                queryBuilder.append("\n");
+            }
+            queryBuilder.append("\n");
+
+            queryBuilder.append("--- DETAILED CALCULATION OUTPUTS ---\n");
+            if (reportPayload.trajectories() != null) {
+                queryBuilder.append("- Optimized Holding Decay Trajectories (per step):\n");
+                for (int i = 0; i < reportPayload.trajectories().length; i++) {
+                    queryBuilder.append(String.format("  * S%d Decay: ", (i + 1)));
+                    for (int s = 0; s < reportPayload.trajectories()[i].length; s++) {
+                        queryBuilder.append(String.format("%.1f ", reportPayload.trajectories()[i][s]));
+                    }
+                    queryBuilder.append("\n");
+                }
+            }
+            queryBuilder.append(String.format(
+                "- Correlated Portfolio (Basket): Expected Shortfall = $%.2f, Volatility (SD) = $%.2f, Shortfall Variance = $%.2f\n" +
+                "- Uncorrelated Portfolio (Independent Sum): Expected Shortfall = $%.2f, Volatility (SD) = $%.2f, Shortfall Variance = $%.2f\n" +
+                "- Calculated Diversification Benefit (Risk SD Reduction): $%.2f\n\n",
+                correlatedResult.expectedShortfall(), correlatedResult.shortfallStandardDeviation(), correlatedResult.shortfallVariance(),
+                uncorrelatedResult.expectedShortfall(), uncorrelatedResult.shortfallStandardDeviation(), uncorrelatedResult.shortfallVariance(),
+                benefit
+            ));
+
+            queryBuilder.append("Analyze this portfolio risk profile and provide an explainability analysis. The output must have exactly 3 bullet points, under 150 words total, and include:\n");
+            queryBuilder.append("1. Explanation of how the assets' correlations affect the portfolio volatility relative to the uncorrelated sum.\n");
+            queryBuilder.append("2. Explanation of why the expected shortfall is identical but risk is reduced (or not) due to covariance/methodology.\n");
+            queryBuilder.append("3. An execution suggestion based on the correlation matrix and parameters.");
+
+            return agent.analyzeOrder(queryBuilder.toString());
         } catch (Exception e) {
             return formatLocalPortfolioReport(correlatedResult, uncorrelatedResult, benefit, e.getMessage());
         }

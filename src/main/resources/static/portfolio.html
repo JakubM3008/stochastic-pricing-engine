@@ -836,7 +836,8 @@
                     request: requestPayload,
                     correlatedResult: data.correlatedResult,
                     uncorrelatedResult: data.uncorrelatedResult,
-                    diversificationBenefit: data.diversificationBenefit
+                    diversificationBenefit: data.diversificationBenefit,
+                    trajectories: data.trajectories
                 };
                 fetch(`/api/portfolio/report?bypassAI=${bypassAI}`, {
                     method: 'POST',

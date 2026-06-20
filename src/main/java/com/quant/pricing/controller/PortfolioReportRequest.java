@@ -6,5 +6,7 @@ public record PortfolioReportRequest(
         PortfolioSimulationRequest request,
         ExecutionResult correlatedResult,
         ExecutionResult uncorrelatedResult,
-        double diversificationBenefit
+        double diversificationBenefit,
+        double[][] trajectories
 ) {}
+
