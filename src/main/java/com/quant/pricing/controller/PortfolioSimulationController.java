@@ -117,7 +117,7 @@ public class PortfolioSimulationController {
 
         String apiKey = System.getenv("GEMINI_API_KEY");
         if (bypassAI || apiKey == null || apiKey.isBlank()) {
-            return formatLocalPortfolioReport(correlatedResult, uncorrelatedResult, benefit, null);
+            return formatLocalPortfolioReport(correlatedResult, uncorrelatedResult, benefit, request.lambda(), null);
         }
 
         try {
@@ -169,16 +169,16 @@ public class PortfolioSimulationController {
 
             queryBuilder.append("Analyze this portfolio risk profile and provide an explainability analysis. The output must have exactly 3 bullet points, under 150 words total, and include:\n");
             queryBuilder.append("1. Explanation of how the assets' correlations affect the portfolio volatility relative to the uncorrelated sum.\n");
-            queryBuilder.append("2. Explanation of why the expected shortfall is identical but risk is reduced (or not) due to covariance/methodology.\n");
-            queryBuilder.append("3. An execution suggestion based on the correlation matrix and parameters.");
+            queryBuilder.append("2. The final calculated risk-adjusted utility (Expected Shortfall + lambda * SD^2) for both portfolios (show only the final value, do not decompose the calculation elements/steps) and explain the comparison.\n");
+            queryBuilder.append("3. A clear execution suggestion choosing the portfolio with the superior (lower) risk-adjusted utility.");
 
             return agent.analyzeOrder(queryBuilder.toString());
         } catch (Exception e) {
-            return formatLocalPortfolioReport(correlatedResult, uncorrelatedResult, benefit, e.getMessage());
+            return formatLocalPortfolioReport(correlatedResult, uncorrelatedResult, benefit, request.lambda(), e.getMessage());
         }
     }
 
-    private String formatLocalPortfolioReport(ExecutionResult correlatedRes, ExecutionResult uncorrelatedRes, double benefit, String apiError) {
+    private String formatLocalPortfolioReport(ExecutionResult correlatedRes, ExecutionResult uncorrelatedRes, double benefit, double lambda, String apiError) {
         String note;
         if (apiError != null) {
             note = String.format("*Note: Gemini API failed (%s). Fell back to Local Pre-Trade Report.*", apiError);
@@ -186,14 +186,17 @@ public class PortfolioSimulationController {
             note = "*Note: Export your `GEMINI_API_KEY` to unlock live Gemini analysis.*";
         }
 
+        double corrUtility = correlatedRes.expectedShortfall() + lambda * Math.pow(correlatedRes.shortfallStandardDeviation(), 2);
+        double uncorrUtility = uncorrelatedRes.expectedShortfall() + lambda * Math.pow(uncorrelatedRes.shortfallStandardDeviation(), 2);
+
         return String.format(
             "### Portfolio Pre-Trade Risk Summary (Local Mode)\n\n" +
-            "* **Correlated Portfolio (Basket)**: Expected Cost (Shortfall): %.2f USD. Risk Volatility (SD): %.2f USD.\n" +
-            "* **Uncorrelated Portfolio (Independent Sum)**: Expected Cost (Shortfall): %.2f USD. Risk Volatility (SD): %.2f USD.\n" +
+            "* **Correlated Portfolio (Basket)**: Expected Cost (Shortfall): %.2f USD. Risk Volatility (SD): %.2f USD. Risk-Adjusted Utility: %.2f USD.\n" +
+            "* **Uncorrelated Portfolio (Independent Sum)**: Expected Cost (Shortfall): %.2f USD. Risk Volatility (SD): %.2f USD. Risk-Adjusted Utility: %.2f USD.\n" +
             "* **Diversification Benefit**: Inter-asset correlation leads to a risk standard deviation reduction of **%.2f USD** compared to treating liquidation risks independently.\n\n" +
             "%s",
-            correlatedRes.expectedShortfall(), correlatedRes.shortfallStandardDeviation(),
-            uncorrelatedRes.expectedShortfall(), uncorrelatedRes.shortfallStandardDeviation(),
+            correlatedRes.expectedShortfall(), correlatedRes.shortfallStandardDeviation(), corrUtility,
+            uncorrelatedRes.expectedShortfall(), uncorrelatedRes.shortfallStandardDeviation(), uncorrUtility,
             benefit,
             note
         );
