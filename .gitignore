@@ -43,3 +43,6 @@ developer-preferences.md
 .agents/
 trading_ui_design_subagent_skill.md
 
+# Rust dynamic builds target (Do not commit)
+rust-sim/target/
+
