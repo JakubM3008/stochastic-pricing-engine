@@ -71,8 +71,8 @@ public class SimulationController {
         double tau = 1.0;
         List<FrontierPoint> frontier = new ArrayList<>();
         double minLog = -8.0;
-        double maxLog = -2.0;
-        int steps = 20;
+        double maxLog = -1.0;
+        int steps = 50;
         for (int i = 0; i <= steps; i++) {
             double logVal = minLog + (maxLog - minLog) * i / steps;
             double l = Math.pow(10, logVal);
@@ -80,11 +80,25 @@ public class SimulationController {
                     request.totalShares(), request.numSteps(), request.stepVolatility(),
                     l, request.eta(), request.gamma(), tau
             );
-            ExecutionResult res = simulator.simulate(
-                    request.initialPrice(), trajectory, request.numSteps(),
-                    request.stepVolatility(), request.eta(), request.gamma(), tau, 2000
-            );
-            frontier.add(new FrontierPoint(l, res.expectedShortfall(), res.shortfallStandardDeviation()));
+            
+            double expectedShortfall = 0.0;
+            double sumSqHoldings = 0.0;
+            double totalShares = trajectory[0];
+            int numSteps = trajectory.length - 1;
+            
+            for (int j = 1; j <= numSteps; j++) {
+                double t_j = trajectory[j - 1] - trajectory[j];
+                double x_j = trajectory[j];
+                expectedShortfall += t_j * (request.gamma() * (totalShares - x_j) + request.eta() * (t_j / tau));
+                
+                double x_prev = trajectory[j - 1];
+                sumSqHoldings += x_prev * x_prev;
+            }
+            
+            double variance = request.stepVolatility() * request.stepVolatility() * tau * sumSqHoldings;
+            double stdDev = Math.sqrt(variance);
+            
+            frontier.add(new FrontierPoint(l, expectedShortfall, stdDev));
         }
         return frontier;
     }
