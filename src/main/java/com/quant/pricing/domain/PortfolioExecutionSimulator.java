@@ -54,37 +54,33 @@ public class PortfolioExecutionSimulator {
                         int taskPathCount = endPath - startPath;
                         List<Double> taskShortfalls = new ArrayList<>(taskPathCount);
 
+                        int paddedSize = ((m + lanes - 1) / lanes) * lanes;
                         double[] prices = new double[m];
-                        double[] z = new double[lanes]; // padded shock register input
-                        double[] choleskyRowPadded = new double[lanes];
+                        double[] shocksPadded = new double[paddedSize];
+                        double[] rowPadded = new double[paddedSize];
+                        double[] correlatedShocks = new double[m];
 
                         for (int p = 0; p < taskPathCount; p++) {
                             System.arraycopy(initialPrices, 0, prices, 0, m);
                             double cashRealized = 0.0;
 
                             for (int k = 1; k <= numSteps; k++) {
-                                // Generate independent Gaussian shocks and pad to vector register width
+                                // Generate independent Gaussian shocks for all assets
                                 for (int i = 0; i < m; i++) {
-                                    z[i] = ThreadLocalRandom.current().nextGaussian();
+                                    shocksPadded[i] = ThreadLocalRandom.current().nextGaussian();
                                 }
-                                for (int i = m; i < lanes; i++) {
-                                    z[i] = 0.0;
-                                }
-
-                                DoubleVector vShocks = DoubleVector.fromArray(SPECIES, z, 0);
-                                double[] correlatedShocks = new double[m];
 
                                 // Vectorized Matrix-Vector dot product (Y = L * Z)
                                 for (int i = 0; i < m; i++) {
-                                    System.arraycopy(L[i], 0, choleskyRowPadded, 0, m);
-                                    for (int j = m; j < lanes; j++) {
-                                        choleskyRowPadded[j] = 0.0;
-                                    }
+                                    System.arraycopy(L[i], 0, rowPadded, 0, m);
 
-                                    DoubleVector vRow = DoubleVector.fromArray(SPECIES, choleskyRowPadded, 0);
-                                    
-                                    // SIMD dot product: multiply shocks by row elements and reduce via lane-addition
-                                    correlatedShocks[i] = vRow.mul(vShocks).reduceLanes(VectorOperators.ADD);
+                                    double sum = 0.0;
+                                    for (int j = 0; j < paddedSize; j += lanes) {
+                                        DoubleVector vRow = DoubleVector.fromArray(SPECIES, rowPadded, j);
+                                        DoubleVector vShocks = DoubleVector.fromArray(SPECIES, shocksPadded, j);
+                                        sum += vRow.mul(vShocks).reduceLanes(VectorOperators.ADD);
+                                    }
+                                    correlatedShocks[i] = sum;
                                 }
 
                                 // Update prices and cash for each asset
