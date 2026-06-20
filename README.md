@@ -9,10 +9,20 @@ Built with modern **Java 23**, utilizing **Project Loom Virtual Threads** for ma
 ## Key Features
 
 * **Almgren-Chriss Optimization:** Computes the efficient frontier of optimal trading schedules under linear market impact. Decays holdings exponentially to balance transaction costs against price volatility risk.
-* **Correlated Basket Execution:** Simulates a multi-asset basket of stocks using a covariance matrix decomposed via Cholesky factor mapping.
-* **SIMD Matrix Math (Java Vector API):** Vectorizes matrix-vector operations ($\mathbf{Y} = \mathbf{L}\mathbf{Z}$) inside CPU AVX/NEON registers using the new `jdk.incubator.vector` module, executing dot products in a single CPU cycle.
-* **Virtual Threads (Project Loom):** Distributes independent simulation path executions across light-weight carrier threads for extreme concurrent throughput.
-* **Agentic Quant desk Analyst:** Integrated with **LangChain4j** to serve as an AI Quant Analyst that automatically runs optimizations, runs simulations, and compares execution paths.
+* **Multi-Asset Portfolio & Diversification Dashboard (`/portfolio`):**
+  - Interactive Bloomberg Terminal view comparing correlated basket liquidation risk against independent (uncorrelated) liquidations.
+  - Allows full customization of a 3-stock basket: position sizes, initial prices, volatilities, temporary/permanent impact coefficients, and risk aversion ($\lambda$).
+  - Full 3x3 Correlation Matrix input that dynamically solves for Cholesky factorizations.
+  - Interactive charts plotting holding decay schedules and correlated vs. uncorrelated shortfall standard deviation.
+  - Live indicators highlighting either a **Diversification Benefit** (risk reduction) or a **Diversification Penalty** (risk increase due to positive covariance).
+* **SIMD Matrix Math (Java Vector API):** Vectorizes matrix-vector operations ($\mathbf{Y} = \mathbf{L}\mathbf{Z}$) inside CPU AVX/NEON registers using the new `jdk.incubator.vector` module.
+  - *Apple Silicon NEON Fix:* Automatically pads correlation/Cholesky matrices to the nearest multiple of the vector width (lanes = 2 for doubles) to avoid hardware index out-of-bound errors.
+  - *Zero GC Allocation:* Hot loops are 100% allocation-free by pre-allocating padded buffers outside step loops.
+* **Virtual Threads (Project Loom):** Distributes independent simulation path executions across lightweight carrier threads for extreme concurrent throughput.
+* **Decoupled Agentic Quant Analyst:** Integrated with **LangChain4j** and **Gemini 2.5**.
+  - System instructions are externalized to [report-summary.md](file:///Users/jakubm/stochastic-pricing-engine/src/main/resources/report-summary.md).
+  - Serializes all parameters and simulation outputs into a structured JSON string payload to feed to the LLM.
+  - Enforces mathematically rigorous explanations, standard USD currency formatting, pre-calculated Risk-Adjusted Utilities, and trade-off tolerance switch values.
 
 ---
 
@@ -26,32 +36,54 @@ Where:
 * $\mathbb{V}[x]$ is the variance of the shortfall (exposure to asset volatility).
 * $\lambda$ is the investor's **Risk Aversion**. Higher $\lambda$ shifts the optimal path to liquidate rapidly early on, while $\lambda = 0$ converges directly to a straight linear **TWAP** (Time-Weighted Average Price) trajectory.
 
-### 2. Multi-Asset Correlated Shocks
+### 2. Multi-Asset Correlated Shocks & Diversification Benefit
 To generate correlated shocks for the asset basket:
 1. Decompose the covariance matrix $\mathbf{\Sigma} = \mathbf{L}\mathbf{L}^T$ using Cholesky factorization.
 2. Generate independent normal shocks $\mathbf{Z} \sim N(0, \mathbf{I})$.
-3. Multiply them to get correlated shocks: $\mathbf{Y} = \mathbf{L}\mathbf{Z}$.
-4. We vectorize this step by loading the lower triangular rows and shocks directly into JVM SIMD registers.
+3. Multiply them to get correlated shocks: $\mathbf{Y} = \mathbf{L}\mathbf{Z}$. We vectorize this step by loading the lower triangular rows and shocks directly into JVM SIMD registers.
+4. **Diversification Benefit** is measured by comparing the shortfall standard deviation of the uncorrelated portfolio (diagonal covariance) against the correlated portfolio:
+   $$\text{Benefit} = \text{SD}_{\text{uncorrelated}} - \text{SD}_{\text{correlated}}$$
+   If assets are positively correlated ($\rho > 0$), this benefit becomes negative, representing a **Diversification Penalty/Loss** due to systemic risk reinforcement.
 
 ---
 
 ## System Architecture
 
 ```
-src/main/java/com/quant/pricing/
+src/
+├── main/
+│   ├── java/com/quant/pricing/
+│   │    ├── domain/                  <-- Pure Financial Mathematics & Core Simulators
+│   │    │    ├── AlmgrenChrissOptimizer.java  <-- Discrete trajectory solver (Hyperbolic Sine)
+│   │    │    ├── ExecutionResult.java         <-- Holds simulation mean and variance
+│   │    │    ├── ExecutionSimulator.java      <-- Single-asset SIMD Monte Carlo simulator
+│   │    │    └── PortfolioExecutionSimulator.java <-- Multi-asset SIMD Monte Carlo simulator (Cholesky)
+│   │    │
+│   │    ├── agent/                   <-- LangChain4j Agentic Interfaces & Tools
+│   │    │    ├── ExecutionAgent.java          <-- Declares system messages for the quant AI
+│   │    │    ├── ExecutionTools.java          <-- Tools exposed to the LLM via reflection
+│   │    │    └── AgentConfiguration.java      <-- Configures AI service proxies and fallbacks
+│   │    │
+│   │    ├── controller/              <-- REST Endpoints
+│   │    │    ├── SimulationController.java    <-- Single-asset simulation & reporting
+│   │    │    ├── PortfolioSimulationController.java <-- Multi-asset basket simulation & reporting
+│   │    │    └── ...
+│   │    │
+│   │    └── PricingEngineRunner.java <-- Bootstraps demo parameters and runs simulations
+│   │
+│   └── resources/
+│        ├── report-summary.md        <-- Decoupled LLM system prompt / instruction set
+│        └── static/                  <-- Bloomberg Terminal Frontend HTML/JS views
+│             ├── index.html          <-- Standard Execution Terminal
+│             ├── dynamic.html        <-- Intraday Volume Execution Terminal
+│             └── portfolio.html      <-- Basket & Diversification Terminal
 │
-├── domain/                  <-- Pure Financial Mathematics & Core Simulators
-│    ├── AlmgrenChrissOptimizer.java  <-- Discrete trajectory solver (Hyperbolic Sine)
-│    ├── ExecutionResult.java         <-- Holds simulation mean and variance
-│    ├── ExecutionSimulator.java      <-- Single-asset SIMD Monte Carlo simulator
-│    └── PortfolioExecutionSimulator.java <-- Multi-asset SIMD Monte Carlo simulator (Cholesky)
-│
-├── agent/                   <-- LangChain4j Agentic Interfaces & Tools
-│    ├── ExecutionAgent.java          <-- Declares system messages for the quant AI
-│    ├── ExecutionTools.java          <-- Tools exposed to the LLM via reflection
-│    └── AgentConfiguration.java      <-- Configures AI service proxies and fallbacks
-│
-└── PricingEngineRunner.java <-- Bootstraps demo parameters and runs simulations
+└── test/
+    └── java/com/quant/pricing/
+         ├── controller/
+         │    ├── SimulationControllerTest.java          <-- Single-asset endpoint tests
+         │    └── PortfolioSimulationControllerTest.java   <-- Multi-asset basket & Cholesky tests
+         └── ...
 ```
 
 ---
@@ -62,23 +94,24 @@ src/main/java/com/quant/pricing/
 * **Java 23+** (OpenJDK 23 recommended)
 * Gradle wrapper (included)
 
-### Running the Simulator
-Run the default Spring Boot command line runner. It calculates TWAP and Optimal schedules, runs 10,000 paths using SIMD and Virtual Threads, and prints the shortfall and standard deviations:
-
+### Running the Web Server
+Launch the Spring Boot server to spin up the Bloomberg Terminal web frontend on port `8080`:
 ```bash
 ./gradlew bootRun
 ```
+Navigate to:
+- Standard Execution: `http://localhost:8080/`
+- Intraday Volume Profile: `http://localhost:8080/dynamic`
+- Multi-Asset Portfolio: `http://localhost:8080/portfolio`
 
 ### Running the Tests
-To run unit and integration tests (including the portfolio diversification benefit checks):
-
+To run the full suite of unit and integration tests (including the vector padding, Cholesky, and portfolio REST endpoint suites):
 ```bash
 ./gradlew test
 ```
 
-### Enabling the AI Agent (Optional)
-To query the LangChain4j AI Quant Analyst, get an API key from Google AI Studio, export it, and run the boot task:
-
+### Enabling the Gemini AI Agent
+To enable live AI report generation under the terminal's `LIVE GEMINI API` toggles, export your Gemini API key:
 ```bash
 export GEMINI_API_KEY="AIzaSyYourActualKeyHere"
 ./gradlew bootRun
