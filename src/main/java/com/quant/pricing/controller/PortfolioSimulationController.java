@@ -212,6 +212,8 @@ public class PortfolioSimulationController {
 
         double corrUtility = correlatedRes.expectedShortfall() + lambda * Math.pow(correlatedRes.shortfallStandardDeviation(), 2);
         double uncorrUtility = uncorrelatedRes.expectedShortfall() + lambda * Math.pow(uncorrelatedRes.shortfallStandardDeviation(), 2);
+        double utilityDiff = Math.abs(corrUtility - uncorrUtility);
+        String recommendation = corrUtility < uncorrUtility ? "Correlated Portfolio (Basket)" : "Uncorrelated Portfolio (Independent Sum)";
 
         String benefitText;
         if (benefit >= 0) {
@@ -224,11 +226,13 @@ public class PortfolioSimulationController {
             "### Portfolio Pre-Trade Risk Summary (Local Mode)\n\n" +
             "* **Correlated Portfolio (Basket)**: Expected Cost (Shortfall): %.2f USD. Risk Volatility (SD): %.2f USD. Risk-Adjusted Utility: %.2f USD.\n" +
             "* **Uncorrelated Portfolio (Independent Sum)**: Expected Cost (Shortfall): %.2f USD. Risk Volatility (SD): %.2f USD. Risk-Adjusted Utility: %.2f USD.\n" +
-            "* **Diversification Benefit**: %s\n\n" +
+            "* **Diversification Benefit**: %s\n" +
+            "* **Execution Recommendation**: Execute the %s. We can tolerate up to **%.2f USD** of additional risk-adjusted utility trade-off in this recommended strategy before we would switch to the other portfolio.\n\n" +
             "%s",
             correlatedRes.expectedShortfall(), correlatedRes.shortfallStandardDeviation(), corrUtility,
             uncorrelatedRes.expectedShortfall(), uncorrelatedRes.shortfallStandardDeviation(), uncorrUtility,
             benefitText,
+            recommendation, utilityDiff,
             note
         );
     }
