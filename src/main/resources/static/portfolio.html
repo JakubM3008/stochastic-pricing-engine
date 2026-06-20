@@ -650,54 +650,6 @@
                     <div style="color: var(--accent-primary); font-weight: bold; margin-bottom: 0.25rem;">[PORTFOLIO COVARIANCE DIVERSIFICATION DETAILS]</div>
                     <span>When asset returns are positively correlated (&rho; > 0), price shocks reinforce each other, inflating the expected shortfall volatility (portfolio variance). Conversely, when correlations are low or negative, independent fluctuations offset each other, yielding a <strong>diversification benefit</strong> ($SD_{uncorrelated} - SD_{correlated}$) mapped via the Cholesky factor matrix: <strong>Y = L * Z</strong>.</span>
                 </div>
-
-                <!-- Computation Profiling Panel -->
-                <div class="panel" id="profilingPanel">
-                    <div class="panel-header">
-                        <span class="panel-title">5 &lt;Go&gt; Computation Profiling</span>
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Operation</th>
-                                <th>Component / Runtime</th>
-                                <th class="text-right">Latency (ms)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td style="color: var(--accent-optimal); font-weight: bold;">Backend Trajectory Optimization</td>
-                                <td>Almgren-Chriss (Java)</td>
-                                <td id="optTime" class="text-right">—</td>
-                            </tr>
-                            <tr>
-                                <td style="color: var(--accent-optimal); font-weight: bold;">Backend Monte Carlo Simulation</td>
-                                <td>Native Rust SIMD (via FFM)</td>
-                                <td id="simTime" class="text-right">—</td>
-                            </tr>
-                            <tr>
-                                <td style="color: var(--text-muted); font-weight: bold;">Server-Side Overhead</td>
-                                <td>Java Controller &amp; Marshalling</td>
-                                <td id="overheadTime" class="text-right">—</td>
-                            </tr>
-                            <tr>
-                                <td style="color: var(--accent-twap); font-weight: bold;">Client-Side Rendering</td>
-                                <td>DOM &amp; Chart.js Paint</td>
-                                <td id="renderTime" class="text-right">—</td>
-                            </tr>
-                            <tr>
-                                <td style="color: var(--accent-vwap); font-weight: bold;">AI Report Generation</td>
-                                <td>Gemini API / Local Fallback</td>
-                                <td id="aiTime" class="text-right">—</td>
-                            </tr>
-                            <tr style="border-top: 2px solid var(--border-color); font-weight: bold; color: var(--accent-primary);">
-                                <td>Total End-to-End Latency</td>
-                                <td>Full Transaction Cycle</td>
-                                <td id="e2eTime" class="text-right">—</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </div>
     </div>
@@ -720,10 +672,14 @@
         </div>
     </div>
 
-    <!-- Bloomberg Footer Status Bar -->
-    <div class="terminal-footer">
-        <div>PORT: 8080 | ENGINE: JVM STOCHASTIC RISK ENGINE v2.0</div>
-        <div id="footerStatus">PORTFOLIO ENGINE ACTIVE | CHOLESKY SIMD SHOCK GENERATOR</div>
+    <div class="terminal-footer" style="display: flex; flex-direction: column; gap: 0.2rem; align-items: stretch; font-size: 8px;">
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.2rem; margin-bottom: 0.1rem; color: var(--text-muted);">
+            <span>LATENCY: [AC Java Opt: <span id="optTime" style="color: var(--accent-optimal);">—</span>] [Rust SIMD Sim: <span id="simTime" style="color: var(--accent-optimal);">—</span>] [Server Overhead: <span id="overheadTime" style="color: var(--accent-optimal);">—</span>] [Client Render: <span id="renderTime" style="color: var(--accent-twap);">—</span>] [AI Report: <span id="aiTime" style="color: var(--accent-vwap);">—</span>] [E2E Cycle: <span id="e2eTime" style="color: var(--accent-primary); font-weight: bold;">—</span>]</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 9px;">
+            <div>PORT: 8080 | ENGINE: JVM STOCHASTIC RISK ENGINE v2.0</div>
+            <div id="footerStatus">PORTFOLIO ENGINE ACTIVE | CHOLESKY SIMD SHOCK GENERATOR</div>
+        </div>
     </div>
 
     <script>
