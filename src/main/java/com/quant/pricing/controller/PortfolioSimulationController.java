@@ -39,7 +39,7 @@ public class PortfolioSimulationController {
             int m = request.initialPrices().length;
             int numSteps = request.numSteps();
             double tau = 1.0;
-            int numPaths = 10000;
+            int numPaths = 100000;
 
             
             long optStart = System.nanoTime();

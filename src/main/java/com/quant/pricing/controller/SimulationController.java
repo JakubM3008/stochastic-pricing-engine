@@ -30,7 +30,7 @@ public class SimulationController {
     @PostMapping("/simulate")
     public SimulationResponse runSimulation(@RequestBody SimulationRequest request) {
         double tau = 1.0;
-        int numPaths = 10000;
+        int numPaths = 100000;
 
         double[] optimal = optimizer.optimize(
                 request.totalShares(), request.numSteps(), request.stepVolatility(), 
