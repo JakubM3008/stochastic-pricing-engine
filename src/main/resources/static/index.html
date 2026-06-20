@@ -1473,6 +1473,28 @@
         });
 
         let frontierChart = null;
+        let currentFrontierData = null;
+
+        function getFrontierPointAtRisk(sorted, risk) {
+            if (!sorted || sorted.length === 0) return null;
+            if (risk <= sorted[0].x) {
+                return sorted[0];
+            }
+            if (risk >= sorted[sorted.length - 1].x) {
+                return sorted[sorted.length - 1];
+            }
+            for (let i = 0; i < sorted.length - 1; i++) {
+                if (risk >= sorted[i].x && risk <= sorted[i + 1].x) {
+                    const p0 = sorted[i];
+                    const p1 = sorted[i + 1];
+                    const t = (risk - p0.x) / (p1.x - p0.x);
+                    const y = p0.y + t * (p1.y - p0.y);
+                    const lambda = p0.lambda + t * (p1.lambda - p0.lambda);
+                    return { x: risk, y: y, lambda: lambda };
+                }
+            }
+            return null;
+        }
 
         function renderFrontier(dataPoints, current) {
             const ctx = document.getElementById('frontierChart').getContext('2d');
@@ -1481,6 +1503,8 @@
                 y: p.expectedShortfall,
                 lambda: p.lambda
             })).sort((a, b) => a.x - b.x);
+
+            currentFrontierData = sortedData;
 
             const datasets = [
                 {
@@ -1597,7 +1621,20 @@
                                     if (context.datasetIndex === 0) {
                                         return `Cost: ${formatCurrency(pt.y)} | Risk: ${formatCurrency(pt.x)} | Lambda: ${pt.lambda.toExponential(2)}`;
                                     }
-                                    return `${context.dataset.label} -> Cost: ${formatCurrency(pt.y)} | Risk: ${formatCurrency(pt.x)}`;
+                                    const lines = [
+                                        `${context.dataset.label}:`,
+                                        `  Cost (Simulated): ${formatCurrency(pt.y)}`,
+                                        `  Risk SD (Simulated): ${formatCurrency(pt.x)}`
+                                    ];
+                                    if (currentFrontierData && currentFrontierData.length > 0) {
+                                        const frontierPt = getFrontierPointAtRisk(currentFrontierData, pt.x);
+                                        if (frontierPt) {
+                                            lines.push(`Efficient Frontier (at same Risk):`);
+                                            lines.push(`  Cost (Analytical): ${formatCurrency(frontierPt.y)}`);
+                                            lines.push(`  Risk SD (Analytical): ${formatCurrency(frontierPt.x)}`);
+                                        }
+                                    }
+                                    return lines;
                                 }
                             }
                         },
