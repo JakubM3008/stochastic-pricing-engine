@@ -41,3 +41,8 @@ tasks.named('test') {
 tasks.named('bootRun') {
 	jvmArgs += ["--add-modules", "jdk.incubator.vector", "--enable-native-access=ALL-UNNAMED"]
 }
+
+tasks.named('jar') {
+	enabled = false
+}
+
