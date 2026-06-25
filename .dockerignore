@@ -1,0 +1,6 @@
+build/
+.gradle/
+rust-sim/target/
+AWSCLIV2.pkg
+.git/
+.agents/
