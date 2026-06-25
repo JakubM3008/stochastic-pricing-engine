@@ -1475,6 +1475,26 @@
         let frontierChart = null;
         let currentFrontierData = null;
 
+        function calculateAnalyticalMetrics(trajectory, eta, gamma, stepVolatility) {
+            const totalShares = trajectory[0];
+            const numSteps = trajectory.length - 1;
+            const tau = 1.0;
+            let expectedShortfall = 0.0;
+            let sumSqHoldings = 0.0;
+            for (let j = 1; j <= numSteps; j++) {
+                const t_j = trajectory[j - 1] - trajectory[j];
+                const x_j = trajectory[j];
+                expectedShortfall += t_j * (gamma * (totalShares - x_j) + eta * (t_j / tau));
+                const x_prev = trajectory[j - 1];
+                sumSqHoldings += x_prev * x_prev;
+            }
+            const variance = stepVolatility * stepVolatility * tau * sumSqHoldings;
+            return {
+                expectedShortfall,
+                shortfallStandardDeviation: Math.sqrt(variance)
+            };
+        }
+
         function getFrontierPointAtRisk(sorted, risk) {
             if (!sorted || sorted.length === 0) return null;
             if (risk <= sorted[0].x) {
@@ -1525,37 +1545,40 @@
                     label: 'Your Optimal AC',
                     borderColor: '#00ff00',
                     backgroundColor: 'transparent',
-                    data: [{ x: current.optimalSD, y: current.optimalES }],
+                    data: [{ x: current.optimalSDAnal, y: current.optimalESAnal }],
                     pointStyle: 'crossRot',
                     pointRadius: 6,
                     pointHoverRadius: 8,
                     borderWidth: 1.5,
                     showLine: false,
-                    order: 1
+                    order: 1,
+                    simulated: { x: current.optimalSDSim, y: current.optimalESSim }
                 });
                 datasets.push({
                     label: 'Your TWAP',
                     borderColor: '#ffff00',
                     backgroundColor: 'transparent',
-                    data: [{ x: current.twapSD, y: current.twapES }],
+                    data: [{ x: current.twapSDAnal, y: current.twapESAnal }],
                     pointStyle: 'crossRot',
                     pointRadius: 6,
                     pointHoverRadius: 8,
                     borderWidth: 1.5,
                     showLine: false,
-                    order: 1
+                    order: 1,
+                    simulated: { x: current.twapSDSim, y: current.twapESSim }
                 });
                 datasets.push({
                     label: 'Your VWAP',
                     borderColor: '#00ffff',
                     backgroundColor: 'transparent',
-                    data: [{ x: current.vwapSD, y: current.vwapES }],
+                    data: [{ x: current.vwapSDAnal, y: current.vwapESAnal }],
                     pointStyle: 'crossRot',
                     pointRadius: 6,
                     pointHoverRadius: 8,
                     borderWidth: 1.5,
                     showLine: false,
-                    order: 1
+                    order: 1,
+                    simulated: { x: current.vwapSDSim, y: current.vwapESSim }
                 });
             }
 
@@ -1621,10 +1644,13 @@
                                     if (context.datasetIndex === 0) {
                                         return `Cost: ${formatCurrency(pt.y)} | Risk: ${formatCurrency(pt.x)} | Lambda: ${pt.lambda.toExponential(2)}`;
                                     }
+                                    const simulated = context.dataset.simulated;
                                     const lines = [
                                         `${context.dataset.label}:`,
-                                        `  Cost (Simulated): ${formatCurrency(pt.y)}`,
-                                        `  Risk SD (Simulated): ${formatCurrency(pt.x)}`
+                                        `  Cost (Simulated): ${formatCurrency(simulated.y)}`,
+                                        `  Risk SD (Simulated): ${formatCurrency(simulated.x)}`,
+                                        `  Cost (Analytical): ${formatCurrency(pt.y)}`,
+                                        `  Risk SD (Analytical): ${formatCurrency(pt.x)}`
                                     ];
                                     if (currentFrontierData && currentFrontierData.length > 0) {
                                         const frontierPt = getFrontierPointAtRisk(currentFrontierData, pt.x);
@@ -1701,13 +1727,28 @@
 
                 let currentResults = null;
                 if (lastSimulationData) {
+                    const etaVal = parseFloat(document.getElementById('eta').value);
+                    const gammaVal = parseFloat(document.getElementById('gamma').value);
+                    
+                    const optAnal = calculateAnalyticalMetrics(lastSimulationData.optimalTrajectory, etaVal, gammaVal, stepVolValue);
+                    const twapAnal = calculateAnalyticalMetrics(lastSimulationData.twapTrajectory, etaVal, gammaVal, stepVolValue);
+                    const vwapAnal = calculateAnalyticalMetrics(lastSimulationData.vwapTrajectory, etaVal, gammaVal, stepVolValue);
+                    
                     currentResults = {
-                        optimalES: lastSimulationData.optimalResult.expectedShortfall,
-                        optimalSD: lastSimulationData.optimalResult.shortfallStandardDeviation,
-                        twapES: lastSimulationData.twapResult.expectedShortfall,
-                        twapSD: lastSimulationData.twapResult.shortfallStandardDeviation,
-                        vwapES: lastSimulationData.vwapResult.expectedShortfall,
-                        vwapSD: lastSimulationData.vwapResult.shortfallStandardDeviation
+                        optimalESAnal: optAnal.expectedShortfall,
+                        optimalSDAnal: optAnal.shortfallStandardDeviation,
+                        optimalESSim: lastSimulationData.optimalResult.expectedShortfall,
+                        optimalSDSim: lastSimulationData.optimalResult.shortfallStandardDeviation,
+                        
+                        twapESAnal: twapAnal.expectedShortfall,
+                        twapSDAnal: twapAnal.shortfallStandardDeviation,
+                        twapESSim: lastSimulationData.twapResult.expectedShortfall,
+                        twapSDSim: lastSimulationData.twapResult.shortfallStandardDeviation,
+                        
+                        vwapESAnal: vwapAnal.expectedShortfall,
+                        vwapSDAnal: vwapAnal.shortfallStandardDeviation,
+                        vwapESSim: lastSimulationData.vwapResult.expectedShortfall,
+                        vwapSDSim: lastSimulationData.vwapResult.shortfallStandardDeviation
                     };
                 }
 
